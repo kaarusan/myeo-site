@@ -364,6 +364,12 @@
       .adminGhost{
         opacity:.20;
         user-select:none;
+        text-decoration:none;
+        color: inherit;
+        transition: opacity .12s ease;
+      }
+      .adminGhost:hover{
+        opacity:.32;
       }
 
       /* Audio */
@@ -439,7 +445,7 @@
             <span>today</span>
             <strong id="todayCount">—</strong>
           </div>
-          <div class="adminGhost" title="admin.html">admin</div>
+          <a class="adminGhost" href="admin.html" aria-label="Admin analytics">admin</a>
         </footer>
       </main>
     </div>
