@@ -48,3 +48,6 @@ create policy "users can insert own analytics"
 on public.user_analytics
 for insert
 with check (auth.uid() = user_id);
+
+-- Public bio (shared site): also run `Cursor/supabase-biolink-public.sql` in the SQL Editor.
+-- Global analytics: run `Cursor/supabase-biolink-analytics.sql` after that.

@@ -4,6 +4,8 @@
 -- Force RLS even for table owners (Postgres table owner bypass disabled for RLS).
 ALTER TABLE IF EXISTS public.user_configs FORCE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.user_analytics FORCE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.biolink_public FORCE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.biolink_analytics FORCE ROW LEVEL SECURITY;
 
 -- Analytics: append-only for authenticated users (no UPDATE/DELETE policies = denied).
 DROP POLICY IF EXISTS "users can update own analytics" ON public.user_analytics;

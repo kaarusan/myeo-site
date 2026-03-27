@@ -24,28 +24,17 @@
   </head>
   <body>
     Redirecting…
+    <script src="supabase-config.js"></script>
+    <script src="biolink-remote.js"></script>
     <script>
-      (function(){
-        const LS = { analytics: "myeo_biolink_analytics_v1" };
+      (async function(){
+        const CFG_KEY = "myeo_biolink_config_v1";
 
         function safeJsonParse(s){ try { return JSON.parse(s); } catch { return null; } }
-        function todayKey(d = new Date()){
-          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-        }
-        function loadAnalytics(){
-          try{
-            const raw = localStorage.getItem(LS.analytics);
-            return raw ? safeJsonParse(raw) : null;
-          }catch{ return null; }
-        }
-        function saveAnalytics(a){
-          try{ localStorage.setItem(LS.analytics, JSON.stringify(a)); }catch{}
-        }
 
         const qs = new URLSearchParams(location.search);
         const to = qs.get("to") || "";
         const label = (qs.get("label") || "link").slice(0, 80);
-        const CFG_KEY = "myeo_biolink_config_v1";
 
         function showStaticMessage(text, href, linkText){
           document.body.replaceChildren();
@@ -63,35 +52,64 @@
           return;
         }
 
-        function isAllowedTarget(raw){
-          let u = null;
-          try { u = new URL(raw); } catch { return false; }
-          if (!["http:", "https:"].includes(u.protocol)) return false;
-
-          // Restrict redirects to links configured by this site's settings.
-          let cfg = null;
-          try { cfg = safeJsonParse(localStorage.getItem(CFG_KEY) || "null"); } catch { cfg = null; }
-          const links = Array.isArray(cfg && cfg.links) ? cfg.links : [];
-          const allowed = links
-            .map(function (l) { return l && l.url ? String(l.url).trim() : ""; })
-            .filter(Boolean);
-          return allowed.includes(raw);
+        function normalizeHttpUrl(raw){
+          try {
+            var u = new URL(String(raw || "").trim());
+            if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+            u.hash = "";
+            return u.href;
+          } catch (e) { return null; }
         }
 
-        if (!isAllowedTarget(to)){
+        async function loadLinksForAllowlist(){
+          var c = window.MYEO_SUPABASE;
+          if (c && c.url && c.anonKey){
+            try{
+              var base = String(c.url).replace(/\/$/, "");
+              var u = base + "/rest/v1/biolink_public?id=eq.default&select=config";
+              var r = await fetch(u, {
+                headers: {
+                  apikey: c.anonKey,
+                  Authorization: "Bearer " + c.anonKey,
+                  Accept: "application/json"
+                }
+              });
+              if (r.ok){
+                var rows = await r.json();
+                var cfgCloud = rows && rows[0] && rows[0].config;
+                if (cfgCloud && Array.isArray(cfgCloud.links)) return cfgCloud.links;
+              }
+            }catch(e){}
+          }
+          var cfg = null;
+          try { cfg = safeJsonParse(localStorage.getItem(CFG_KEY) || "null"); } catch (e) { cfg = null; }
+          return Array.isArray(cfg && cfg.links) ? cfg.links : [];
+        }
+
+        async function isAllowedTarget(raw){
+          var want = normalizeHttpUrl(raw);
+          if (!want) return false;
+          var links = await loadLinksForAllowlist();
+          for (var i = 0; i < links.length; i++) {
+            var l = links[i];
+            if (!l || !l.url) continue;
+            var cand = normalizeHttpUrl(l.url);
+            if (cand && cand === want) return true;
+          }
+          return false;
+        }
+
+        if (!(await isAllowedTarget(to))){
           showStaticMessage("Blocked unsafe redirect.", "index.html", "Back");
           return;
         }
 
-        const now = Date.now();
-        const tk = todayKey();
-        const a = loadAnalytics() || { total: 0, days: {}, first: now, last: now, clicks: {} };
-        a.clicks = a.clicks && typeof a.clicks === "object" ? a.clicks : {};
-        a.clicks[label] = a.clicks[label] && typeof a.clicks[label] === "object" ? a.clicks[label] : { total: 0, days: {} };
-        a.clicks[label].total = (a.clicks[label].total || 0) + 1;
-        a.clicks[label].days = a.clicks[label].days && typeof a.clicks[label].days === "object" ? a.clicks[label].days : {};
-        a.clicks[label].days[tk] = (a.clicks[label].days[tk] || 0) + 1;
-        saveAnalytics(a);
+        var br = window.myeoBiolinkRemote;
+        if (br && br.trackBiolinkRest){
+          try{
+            await br.trackBiolinkRest("click", label, br.clientLocalDayKey());
+          }catch(e){}
+        }
 
         try {
           location.replace(to);

@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase-config.js"></script>
     <script src="supabase-auth.js"></script>
+    <script src="biolink-remote.js"></script>
     <script>
       (async function () {
         const auth = window.myeoSupabaseAuth;
@@ -323,7 +324,7 @@
         <header>
           <div class="title">
             <div class="h">myeo · Customize</div>
-            <div class="s">saved in your browser (localStorage)</div>
+            <div class="s">Bio + analytics live in Supabase — same for every visitor worldwide.</div>
           </div>
           <div class="actions" style="margin-top:0;">
             <button class="btn danger" id="signOutBtn" type="button">Sign out</button>
@@ -410,7 +411,7 @@
             <div class="linksEditorHeader">
               <div>
                 <div style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-weight:900;">{ label, url, subtitle }</div>
-                <div class="small">click add to create a new row</div>
+                <div class="small">Use any https link — Instagram, NameMC, X, Discord invite, portfolio, shop…</div>
               </div>
               <button class="btn" id="addLinkBtn" type="button">Add link</button>
             </div>
@@ -431,7 +432,7 @@
             <div class="hr" aria-hidden="true"></div>
 
             <h2 id="analytics">Analytics</h2>
-            <div class="tiny">Unlock to view + reset analytics. Click tracking uses `redirect.html`.</div>
+            <div class="tiny">Unlock to view global stats or reset counts in the cloud. Link clicks are tracked via `redirect.html`.</div>
             <div class="row" style="margin-top:10px;">
               <input class="field" id="unlockPass" type="password" placeholder="password" autocomplete="current-password" />
               <button class="btn primary" id="unlockBtn" type="button">Unlock</button>
@@ -448,7 +449,7 @@
               </div>
               <div class="row" style="margin-top:10px;">
                 <button class="btn danger" id="resetAnalyticsBtn" type="button">Reset analytics</button>
-                <span class="pill mono" id="keysHint">myeo_biolink_analytics_v1</span>
+                <span class="pill mono" id="keysHint">biolink_analytics</span>
               </div>
               <div style="margin-top:12px;">
                 <div class="tiny">top clicks</div>
@@ -470,7 +471,6 @@
       (function(){
         const LS = {
           cfg: "myeo_biolink_config_v1",
-          analytics: "myeo_biolink_analytics_v1",
           adminUnlocked: "myeo_admin_unlocked_v1"
         };
 
@@ -517,7 +517,7 @@
         }
 
         const DEFAULT_CONFIG = {
-          name: "myeo",
+          name: "user",
           tagline: "",
           brandSub: "",
           admin: { passHash: hash32("myeo") },
@@ -532,9 +532,9 @@
             loop: true
           },
           links: [
-            { label: "Instagram", url: "https://instagram.com/", subtitle: "@myeo" },
-            { label: "NameMC", url: "https://namemc.com/", subtitle: "minecraft profile" },
-            { label: "Projects", url: "https://github.com/kaarusan", subtitle: "things i've made" }
+            { label: "Link 1", url: "https://example.com", subtitle: "Any URL — social, NameMC, shop…" },
+            { label: "Link 2", url: "https://example.com", subtitle: "Edit labels & URLs below" },
+            { label: "Link 3", url: "https://example.com", subtitle: "Add or remove rows as you like" }
           ]
         };
 
@@ -611,8 +611,8 @@
           }
         }
 
-        function saveConfig(cfg){
-          try{ localStorage.setItem(LS.cfg, JSON.stringify(cfg)); }catch{}
+        async function publishToCloud(cfg){
+          await window.myeoBiolinkRemote.savePublicBiolinkConfig(cfg);
         }
 
         function syncColorVars(cfg){
@@ -620,8 +620,7 @@
           document.documentElement.style.setProperty("--accent2", cfg?.accents?.accent2 || DEFAULT_CONFIG.accents.accent2);
         }
 
-        let config = loadConfig();
-        syncColorVars(config);
+        let config = DEFAULT_CONFIG;
         const auth = window.myeoSupabaseAuth;
         const client = auth ? auth.getClient() : null;
         let pendingMfaFactorId = null;
@@ -655,11 +654,25 @@
           try{ localStorage.setItem(LS.adminUnlocked, v ? "1" : "0"); }catch{}
         }
 
-        function loadAnalytics(){
-          try{
-            const raw = localStorage.getItem(LS.analytics);
-            return raw ? safeJsonParse(raw) : null;
-          }catch{ return null; }
+        function normalizeAnalyticsPanel(raw){
+          if (!raw || typeof raw !== "object"){
+            return { total: 0, days: {}, first: null, last: null, clicks: {} };
+          }
+          return {
+            total: Number(raw.total) || 0,
+            days: raw.days && typeof raw.days === "object" ? raw.days : {},
+            first: raw.first != null ? raw.first : null,
+            last: raw.last != null ? raw.last : null,
+            clicks: raw.clicks && typeof raw.clicks === "object" ? raw.clicks : {}
+          };
+        }
+
+        async function loadAnalytics(){
+          if (window.myeoBiolinkRemote){
+            const raw = await window.myeoBiolinkRemote.fetchAnalyticsData();
+            return normalizeAnalyticsPanel(raw);
+          }
+          return normalizeAnalyticsPanel(null);
         }
         function todayKey(d = new Date()){
           return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
@@ -679,14 +692,14 @@
             "rgba(255,255,255,.45)";
         }
 
-        function renderAnalytics(){
-          const a = loadAnalytics() || { total:0, days:{}, first:null, last:null, clicks:{} };
+        async function renderAnalytics(){
+          const a = await loadAnalytics();
           const tk = todayKey();
           els.statTotal.textContent = String(a?.total ?? 0);
           els.statToday.textContent = String((a?.days && a.days[tk]) ? a.days[tk] : 0);
           els.statFirst.textContent = formatWhen(a?.first);
           els.statLast.textContent = formatWhen(a?.last);
-          els.keysHint.textContent = LS.analytics;
+          els.keysHint.textContent = "biolink_analytics · Supabase";
 
           // clicks
           const clicks = (a?.clicks && typeof a.clicks === "object") ? a.clicks : {};
@@ -738,19 +751,19 @@
           const label = document.createElement("input");
           label.className = "mini";
           label.type = "text";
-          label.placeholder = "Label";
+          label.placeholder = "e.g. Instagram, NameMC, Shop";
           label.value = String(link?.label || "");
 
           const url = document.createElement("input");
           url.className = "mini";
           url.type = "url";
-          url.placeholder = "URL";
+          url.placeholder = "https://…";
           url.value = String(link?.url || "");
 
           const subtitle = document.createElement("input");
           subtitle.className = "mini col3";
           subtitle.type = "text";
-          subtitle.placeholder = "Subtitle (optional)";
+          subtitle.placeholder = "Optional subtitle under the title";
           subtitle.value = String(link?.subtitle || "");
 
           const del = document.createElement("button");
@@ -815,7 +828,8 @@
               autoplay: Boolean(els.cfgAutoplay.checked),
               loop: true
             },
-            links: links.length ? links : DEFAULT_CONFIG.links
+            links: links.length ? links : DEFAULT_CONFIG.links,
+            faviconRev: config?.faviconRev
           };
         }
 
@@ -831,29 +845,43 @@
           els.linksEditor.appendChild(mkLinkRow({ label:"", url:"", subtitle:"" }, Date.now()));
         });
 
-        els.saveBtn.addEventListener("click", () => {
+        els.saveBtn.addEventListener("click", async () => {
           config = normalizeConfigFromForm();
-          syncColorVars(config);
-          saveConfig(config);
-          refreshPreview();
-          els.cfgAdminPass.value = "";
-          alert("Saved. Preview updated.");
+          config.faviconRev = Date.now();
+          if (config.music && config.music.srcType === "upload"){
+            if (!confirm("Uploaded audio only exists in this browser — other visitors will not hear it. Use a URL for everyone. Publish anyway?")) return;
+          }
+          try{
+            await publishToCloud(config);
+            syncColorVars(config);
+            refreshPreview();
+            els.cfgAdminPass.value = "";
+            alert("Published — live for all visitors on myeo.io.");
+          }catch(e){
+            alert("Publish failed: " + (e && e.message ? e.message : String(e)));
+          }
         });
 
         els.previewBtn.addEventListener("click", () => {
           refreshPreview();
         });
 
-        els.resetBtn.addEventListener("click", () => {
-          const ok = confirm("Reset config to defaults?");
+        els.resetBtn.addEventListener("click", async () => {
+          const ok = confirm("Reset the live site to defaults for everyone?");
           if (!ok) return;
-          try{ localStorage.removeItem(LS.cfg); }catch{}
-          config = DEFAULT_CONFIG;
-          syncColorVars(config);
-          setFieldValues(config);
-          refreshPreview();
-          els.cfgAdminPass.value = "";
-          alert("Reset complete.");
+          config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+          config.faviconRev = Date.now();
+          try{
+            await publishToCloud(config);
+            try{ localStorage.removeItem(LS.cfg); }catch{}
+            syncColorVars(config);
+            setFieldValues(config);
+            refreshPreview();
+            els.cfgAdminPass.value = "";
+            alert("Site reset to defaults (published).");
+          }catch(e){
+            alert("Reset publish failed: " + (e && e.message ? e.message : String(e)));
+          }
         });
 
         els.exportBtn.addEventListener("click", () => {
@@ -867,22 +895,22 @@
           alert("Export ready (copied if clipboard permission allows).");
         });
 
-        els.importBtn.addEventListener("click", () => {
+        els.importBtn.addEventListener("click", async () => {
           const t = (els.importBox.value || "").trim();
           if (!t) { alert("Paste something to import."); return; }
           try{
             const decoded = t.trim().startsWith("{") ? safeJsonParse(t) : safeJsonParse(fromUrlBase64(t));
             if (!decoded || typeof decoded !== "object") throw new Error("bad");
-            config = decoded;
-
-            saveConfig(config);
+            config = window.myeoBiolinkRemote.mergeWithDefaults(DEFAULT_CONFIG, decoded);
+            config.faviconRev = Date.now();
+            await publishToCloud(config);
             syncColorVars(config);
             setFieldValues(config);
             refreshPreview();
             els.cfgAdminPass.value = "";
-            alert("Imported + saved.");
-          }catch{
-            alert("Import failed. Paste an encoded string or valid JSON.");
+            alert("Imported and published for all visitors.");
+          }catch(e){
+            alert("Import/publish failed: " + (e && e.message ? e.message : "bad payload or network."));
           }
         });
 
@@ -964,10 +992,6 @@
           await refreshTwoFaStatus();
         });
 
-        setFieldValues(config);
-        refreshPreview();
-        refreshTwoFaStatus();
-
         // music upload handling (stored in IndexedDB)
         els.cfgMusicFile.addEventListener("change", async () => {
           const f = els.cfgMusicFile.files && els.cfgMusicFile.files[0];
@@ -982,13 +1006,13 @@
             config = normalizeConfigFromForm();
             config.music.srcType = "upload";
             config.music.uploadKey = key;
-            // keep URL field but upload takes precedence
-            saveConfig(config);
+            config.faviconRev = Date.now();
+            await publishToCloud(config);
             setFieldValues(config);
             refreshPreview();
-            alert("Uploaded. Saved to this browser.");
-          }catch{
-            alert("Upload failed (browser storage blocked?).");
+            alert("Uploaded and published (file still only on this device).");
+          }catch(e){
+            alert("Upload/publish failed: " + (e && e.message ? e.message : "browser storage blocked?"));
           }finally{
             els.cfgMusicFile.value = "";
           }
@@ -999,10 +1023,15 @@
           await idbDel(key).catch(()=>{});
           config = normalizeConfigFromForm();
           config.music.srcType = "url";
-          saveConfig(config);
-          setFieldValues(config);
-          refreshPreview();
-          alert("Cleared uploaded music.");
+          config.faviconRev = Date.now();
+          try{
+            await publishToCloud(config);
+            setFieldValues(config);
+            refreshPreview();
+            alert("Cleared upload and published.");
+          }catch(e){
+            alert("Publish failed: " + (e && e.message ? e.message : String(e)));
+          }
         });
 
         // analytics unlock (same password as config admin hash)
@@ -1019,7 +1048,7 @@
           setUnlocked(true);
           els.analyticsPanel.style.display = "block";
           setUnlockMsg("Unlocked.", "ok");
-          renderAnalytics();
+          void renderAnalytics();
           return true;
         }
 
@@ -1035,30 +1064,47 @@
           els.analyticsPanel.style.display = "none";
           setUnlockMsg("Locked.", "muted");
         });
-        els.resetAnalyticsBtn.addEventListener("click", () => {
+        els.resetAnalyticsBtn.addEventListener("click", async () => {
           if (!isUnlocked()){
             setUnlockMsg("Unlock first.", "bad");
             return;
           }
-          const ok = confirm("Reset analytics stored in this browser?");
+          const ok = confirm("Reset GLOBAL analytics in Supabase? This clears visits + link clicks for everyone.");
           if (!ok) return;
-          try{ localStorage.removeItem(LS.analytics); }catch{}
-          renderAnalytics();
+          try{
+            await window.myeoBiolinkRemote.resetAnalyticsAuthenticated();
+            setUnlockMsg("Analytics reset in cloud.", "ok");
+            await renderAnalytics();
+          }catch(e){
+            setUnlockMsg((e && e.message) || "Reset failed.", "bad");
+          }
         });
 
-        // initial state
-        if (location.hash === "#analytics"){
-          // scroll into view
-          setTimeout(() => document.getElementById("analytics")?.scrollIntoView({ block:"start", behavior:"smooth" }), 50);
-        }
-        if (isUnlocked()){
-          els.analyticsPanel.style.display = "block";
-          setUnlockMsg("Unlocked.", "ok");
-          renderAnalytics();
-        } else {
-          els.analyticsPanel.style.display = "none";
-          setUnlockMsg("Locked.", "muted");
-        }
+        (async function bootCustomize(){
+          let raw = null;
+          try{
+            if (window.myeoBiolinkRemote) raw = await window.myeoBiolinkRemote.fetchPublicBiolinkConfig();
+          }catch(e){}
+          if (raw && Object.keys(raw).length)
+            config = window.myeoBiolinkRemote.mergeWithDefaults(DEFAULT_CONFIG, raw);
+          else
+            config = loadConfig();
+          syncColorVars(config);
+          setFieldValues(config);
+          refreshPreview();
+          refreshTwoFaStatus();
+          if (location.hash === "#analytics"){
+            setTimeout(() => document.getElementById("analytics")?.scrollIntoView({ block:"start", behavior:"smooth" }), 50);
+          }
+          if (isUnlocked()){
+            els.analyticsPanel.style.display = "block";
+            setUnlockMsg("Unlocked.", "ok");
+            await renderAnalytics();
+          } else {
+            els.analyticsPanel.style.display = "none";
+            setUnlockMsg("Locked.", "muted");
+          }
+        })();
       })();
     </script>
   </body>

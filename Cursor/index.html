@@ -6,10 +6,11 @@
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#070A0F" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; media-src 'self' https: blob:; connect-src 'self' https://*.supabase.co https://challenges.cloudflare.com; frame-src 'self' https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';" />
-    <title>myeo</title>
+    <title>user</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase-config.js"></script>
     <script src="supabase-auth.js"></script>
+    <script src="biolink-remote.js"></script>
     <style>
       :root{
         --bg0:#05060a;
@@ -318,10 +319,27 @@
         border-radius: 12px;
         background: rgba(255,255,255,.03);
         border:1px solid rgba(255,255,255,.10);
-        display:grid;
-        place-items:center;
+        display:flex;
+        align-items:center;
+        justify-content:center;
         color: rgba(255,255,255,.78);
         flex:0 0 auto;
+        overflow:hidden;
+        position:relative;
+      }
+      .badge .link-favicon{
+        width:22px;
+        height:22px;
+        object-fit:contain;
+        display:block;
+        filter: grayscale(1) brightness(1.12) contrast(1.08);
+      }
+      .badge .badge-letter{
+        font-weight:800;
+        font-size:13px;
+        letter-spacing:0;
+        line-height:1;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       }
 
       .label{
@@ -413,9 +431,9 @@
       <main class="card">
         <header class="top">
           <div class="mark" aria-label="Brand">
-            <div class="sig" id="sig">M</div>
+            <div class="sig" id="sig">U</div>
             <div class="txt">
-              <div class="brand" id="brandText">MYEO</div>
+              <div class="brand" id="brandText">USER</div>
               <div class="sub" id="brandSub">links + sound</div>
             </div>
           </div>
@@ -434,7 +452,7 @@
             <img id="avatarImg" alt="Avatar" src="" />
           </div>
           <div class="title">
-            <h1 class="name" id="nameEl">myeo</h1>
+            <h1 class="name" id="nameEl">user</h1>
             <p class="bio" id="bioEl">dark minimal. building things.</p>
           </div>
         </section>
@@ -444,7 +462,7 @@
         <section class="content">
           <div class="section-title">
             <h2>Links</h2>
-            <div class="hint" id="linksHint">click to open</div>
+            <div class="hint" id="linksHint">Click to open. Ctrl+click (or middle-click) opens in a new tab.</div>
           </div>
           <nav class="links" id="linksEl" aria-label="Links list"></nav>
         </section>
@@ -466,12 +484,6 @@
 
     <script>
       (function(){
-        const LS = {
-          cfg: "myeo_biolink_config_v1",
-          analytics: "myeo_biolink_analytics_v1",
-          adminUnlocked: "myeo_admin_unlocked_v1"
-        };
-
         const IDB = { name: "myeo_biolink_idb_v1", store: "blobs" };
         function idbOpen(){
           return new Promise((resolve, reject) => {
@@ -506,7 +518,7 @@
         }
 
         const DEFAULT_CONFIG = {
-          name: "myeo",
+          name: "user",
           tagline: "",
           brandSub: "",
           admin: {
@@ -529,9 +541,9 @@
             loop: true
           },
           links: [
-            { label: "Instagram", url: "https://instagram.com/", subtitle: "@myeo" },
-            { label: "NameMC", url: "https://namemc.com/", subtitle: "minecraft profile" },
-            { label: "Projects", url: "https://github.com/kaarusan", subtitle: "things i've made" }
+            { label: "Link 1", url: "https://example.com", subtitle: "Any URL — social, NameMC, shop…" },
+            { label: "Link 2", url: "https://example.com", subtitle: "Edit labels & URLs in Customize" },
+            { label: "Link 3", url: "https://example.com", subtitle: "Add or remove rows as you like" }
           ]
         };
 
@@ -570,27 +582,14 @@
           try { return JSON.parse(s); } catch { return null; }
         }
 
-        function loadConfig(){
+        function configFromQuery(){
           const fromUrl = qs.get("config");
-          if (fromUrl){
-            try{
-              const decoded = fromUrl === "default" ? DEFAULT_CONFIG : safeJsonParse(fromUrl.startsWith("{") ? fromUrl : fromUrlBase64(fromUrl));
-              if (decoded && typeof decoded === "object") return decoded;
-            } catch {}
-          }
-
+          if (!fromUrl) return null;
           try{
-            const raw = localStorage.getItem(LS.cfg);
-            if (!raw) return DEFAULT_CONFIG;
-            const parsed = safeJsonParse(raw);
-            return (parsed && typeof parsed === "object") ? parsed : DEFAULT_CONFIG;
-          }catch{
-            return DEFAULT_CONFIG;
-          }
-        }
-
-        function saveConfig(cfg){
-          try { localStorage.setItem(LS.cfg, JSON.stringify(cfg)); } catch {}
+            const decoded = fromUrl === "default" ? DEFAULT_CONFIG : safeJsonParse(fromUrl.startsWith("{") ? fromUrl : fromUrlBase64(fromUrl));
+            if (decoded && typeof decoded === "object") return decoded;
+          } catch {}
+          return null;
         }
 
         function clamp01(n, fallback){
@@ -599,8 +598,44 @@
           return fallback;
         }
 
+        function safeHttpHref(raw){
+          try {
+            const u = new URL(String(raw || "").trim());
+            if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+            return u.href;
+          } catch {
+            return null;
+          }
+        }
+
+        /** Google hosts a favicon resolver: given a domain, it returns a cached PNG (not your server). */
+        function faviconUrlForHref(href, cacheBust){
+          try {
+            const host = new URL(href).hostname;
+            if (!host) return "";
+            let url =
+              "https://www.google.com/s2/favicons?sz=64&domain=" + encodeURIComponent(host);
+            if (cacheBust) url += "&v=" + encodeURIComponent(String(cacheBust));
+            return url;
+          } catch {
+            return "";
+          }
+        }
+
+        /** Stable fingerprint when config has no faviconRev (e.g. old saves). Any URL change changes the key. */
+        function faviconBustFromLinkUrls(urls){
+          const s = urls
+            .map(u => String(u || "").trim())
+            .filter(Boolean)
+            .sort()
+            .join("\0");
+          let h = 2166136261;
+          for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+          return (h >>> 0).toString(36);
+        }
+
         function avatarFallback(name, accentA, accentB){
-          const n = (name || "myeo").slice(0, 2).toUpperCase();
+          const n = (name || "user").slice(0, 2).toUpperCase();
           const svg =
             `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
               <defs>
@@ -622,36 +657,39 @@
           return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
         }
 
-        function bumpAnalytics(){
-          const now = Date.now();
-          const d = new Date(now);
-          const tk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+        function todayKey(){
+          const d = new Date();
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+        }
 
-          let a = null;
-          try{
-            const raw = localStorage.getItem(LS.analytics);
-            a = raw ? safeJsonParse(raw) : null;
-          }catch{ a = null; }
-          if (!a || typeof a !== "object"){
-            a = { total: 0, days: {}, first: now, last: now, clicks: {} };
-          }
-          a.total = (a.total || 0) + 1;
-          a.first = a.first || now;
-          a.last = now;
-          a.days = a.days && typeof a.days === "object" ? a.days : {};
-          a.days[tk] = (a.days[tk] || 0) + 1;
-          a.clicks = a.clicks && typeof a.clicks === "object" ? a.clicks : {};
+        function normalizeAnalytics(a){
+          if (!a || typeof a !== "object") return { total: 0, days: {}, clicks: {} };
+          return {
+            total: Number(a.total) || 0,
+            days: a.days && typeof a.days === "object" ? a.days : {},
+            clicks: a.clicks && typeof a.clicks === "object" ? a.clicks : {}
+          };
+        }
 
-          try{ localStorage.setItem(LS.analytics, JSON.stringify(a)); }catch{}
-          return a;
+        async function loadAnalyticsForDisplay(){
+          const br = window.myeoBiolinkRemote;
+          const auth = window.myeoSupabaseAuth;
+          if (!br || !auth || !auth.isConfigured()) return { total: 0, days: {}, clicks: {} };
+          const raw = await br.fetchAnalyticsData();
+          return normalizeAnalytics(raw);
+        }
+
+        async function trackPageviewForDisplay(){
+          const br = window.myeoBiolinkRemote;
+          const auth = window.myeoSupabaseAuth;
+          if (!br || !auth || !auth.isConfigured()) return { total: 0, days: {}, clicks: {} };
+          const raw = await br.trackBiolink("pageview", "");
+          return normalizeAnalytics(raw);
         }
 
         function renderCounter(a){
-          const today = (() => {
-            const d = new Date();
-            const tk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-            return (a?.days && a.days[tk]) ? a.days[tk] : 0;
-          })();
+          const tk = todayKey();
+          const today = (a?.days && a.days[tk]) ? a.days[tk] : 0;
           els.visitsCount.textContent = String(a?.total ?? 0);
           els.todayCount.textContent = String(today);
         }
@@ -668,7 +706,7 @@
           document.documentElement.style.setProperty("--accent2", accent2);
 
           document.title = name;
-          els.sig.textContent = (name[0] || "M").toUpperCase();
+          els.sig.textContent = (name[0] || "U").toUpperCase();
           els.brandText.textContent = String(name).toUpperCase();
           els.brandSub.textContent = brandSub;
           els.nameEl.textContent = name;
@@ -678,28 +716,79 @@
           const url = cfg?.avatar?.avatarDataUrl || cfg?.avatar?.avatarUrl;
           els.avatarImg.src = url ? url : avatarFallback(name, accent, accent2);
 
-          // links
+          // links — real href for ctrl/meta/shift+click & middle-click; plain click uses redirect for analytics
           els.linksEl.innerHTML = "";
           const clean = links.filter(l => l && typeof l === "object" && l.label && l.url);
+          const faviconBust =
+            cfg && cfg.faviconRev != null && String(cfg.faviconRev).length
+              ? String(cfg.faviconRev)
+              : faviconBustFromLinkUrls(clean.map(l => l.url));
           for (const l of clean){
+            const ext = safeHttpHref(l.url);
+            if (!ext) continue;
+
             const a = document.createElement("a");
             a.className = "link";
-            const to = encodeURIComponent(l.url);
-            const label = encodeURIComponent(l.label);
-            a.href = `redirect.html?to=${to}&label=${label}`;
+            a.href = ext;
             a.rel = "noopener noreferrer";
 
-            const iconText = (l.label || "").trim().slice(0, 1).toUpperCase();
-            a.innerHTML = `
-              <span class="left">
-                <span class="badge" aria-hidden="true">${iconText || "•"}</span>
-                <span class="label">
-                  <span class="t">${escapeHtml(l.label)}</span>
-                  <span class="s">${escapeHtml(l.subtitle || "")}</span>
-                </span>
-              </span>
-              <span class="arrow" aria-hidden="true">↗</span>
-            `;
+            const rp = new URLSearchParams();
+            rp.set("to", ext);
+            rp.set("label", String(l.label || "").trim());
+            const redirectHref = "redirect.html?" + rp.toString();
+
+            a.addEventListener("click", (e) => {
+              if (e.defaultPrevented) return;
+              if (e.button !== 0) return;
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+              e.preventDefault();
+              window.location.href = redirectHref;
+            });
+
+            const left = document.createElement("span");
+            left.className = "left";
+
+            const badge = document.createElement("span");
+            badge.className = "badge";
+            badge.setAttribute("aria-hidden", "true");
+
+            const iconText = (l.label || "").trim().slice(0, 1).toUpperCase() || "•";
+            const fav = faviconUrlForHref(ext, faviconBust);
+            function showLetter(){
+              badge.replaceChildren();
+              const letter = document.createElement("span");
+              letter.className = "badge-letter";
+              letter.textContent = iconText;
+              badge.appendChild(letter);
+            }
+            if (fav){
+              const img = document.createElement("img");
+              img.className = "link-favicon";
+              img.alt = "";
+              img.loading = "lazy";
+              img.decoding = "async";
+              img.referrerPolicy = "no-referrer";
+              img.src = fav;
+              img.addEventListener("error", showLetter, { once: true });
+              badge.appendChild(img);
+            } else {
+              showLetter();
+            }
+
+            const lab = document.createElement("span");
+            lab.className = "label";
+            lab.innerHTML = `<span class="t">${escapeHtml(l.label)}</span><span class="s">${escapeHtml(l.subtitle || "")}</span>`;
+
+            left.appendChild(badge);
+            left.appendChild(lab);
+
+            const arrow = document.createElement("span");
+            arrow.className = "arrow";
+            arrow.setAttribute("aria-hidden", "true");
+            arrow.textContent = "↗";
+
+            a.appendChild(left);
+            a.appendChild(arrow);
             els.linksEl.appendChild(a);
           }
           if (!clean.length){
@@ -782,21 +871,20 @@
         }
 
         async function init(){
-          let cfg = loadConfig();
-          // If loaded from URL param, save it so refresh keeps it.
-          if (qs.get("config")) saveConfig(cfg);
+          let cfg = DEFAULT_CONFIG;
+          const fromQ = configFromQuery();
+          if (fromQ) cfg = fromQ;
+          else if (window.myeoBiolinkRemote && window.myeoSupabaseAuth && window.myeoSupabaseAuth.isConfigured()){
+            const raw = await window.myeoBiolinkRemote.fetchPublicBiolinkConfig();
+            if (raw && Object.keys(raw).length)
+              cfg = window.myeoBiolinkRemote.mergeWithDefaults(DEFAULT_CONFIG, raw);
+          }
           await applyConfig(cfg);
 
-          if (!nobump){
-            const a = bumpAnalytics();
-            renderCounter(a);
-          } else {
-            // For preview mode: still render the last stored analytics if present.
-            let a = null;
-            try{ a = safeJsonParse(localStorage.getItem(LS.analytics) || "null"); }catch{ a = null; }
-            if (!a) a = { total: 0, days: {} };
-            renderCounter(a);
-          }
+          let stats = { total: 0, days: {}, clicks: {} };
+          if (!nobump) stats = await trackPageviewForDisplay();
+          else stats = await loadAnalyticsForDisplay();
+          renderCounter(stats);
 
           els.musicBtn.addEventListener("click", toggleMute);
 
