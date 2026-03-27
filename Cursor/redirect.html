@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#070A0F" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';" />
     <title>Redirecting…</title>
     <style>
       :root{ color-scheme: dark; }
@@ -44,9 +45,30 @@
         const qs = new URLSearchParams(location.search);
         const to = qs.get("to") || "";
         const label = (qs.get("label") || "link").slice(0, 80);
+        const CFG_KEY = "myeo_biolink_config_v1";
 
         if (!to){
           document.body.innerHTML = 'Missing destination. <a href="index.html">Back</a>';
+          return;
+        }
+
+        function isAllowedTarget(raw){
+          let u = null;
+          try { u = new URL(raw); } catch { return false; }
+          if (!["http:", "https:"].includes(u.protocol)) return false;
+
+          // Restrict redirects to links configured by this site's settings.
+          let cfg = null;
+          try { cfg = safeJsonParse(localStorage.getItem(CFG_KEY) || "null"); } catch { cfg = null; }
+          const links = Array.isArray(cfg && cfg.links) ? cfg.links : [];
+          const allowed = links
+            .map(function (l) { return l && l.url ? String(l.url).trim() : ""; })
+            .filter(Boolean);
+          return allowed.includes(raw);
+        }
+
+        if (!isAllowedTarget(to)){
+          document.body.innerHTML = 'Blocked unsafe redirect. <a href="index.html">Back</a>';
           return;
         }
 

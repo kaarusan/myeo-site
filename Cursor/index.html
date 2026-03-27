@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#070A0F" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' https: blob:; connect-src 'self' https://*.supabase.co; frame-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';" />
     <title>myeo</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase-config.js"></script>
@@ -686,7 +687,7 @@
             const to = encodeURIComponent(l.url);
             const label = encodeURIComponent(l.label);
             a.href = `redirect.html?to=${to}&label=${label}`;
-            a.rel = "noreferrer";
+            a.rel = "noopener noreferrer";
 
             const iconText = (l.label || "").trim().slice(0, 1).toUpperCase();
             a.innerHTML = `
