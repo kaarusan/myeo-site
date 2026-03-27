@@ -239,13 +239,21 @@
               setMsg(enroll.error.message || "Failed to start 2FA setup.", "bad");
               return;
             }
-            const qr = enroll.data.totp && enroll.data.totp.qr_code ? enroll.data.totp.qr_code : "";
+            const qrRaw = enroll.data.totp && enroll.data.totp.qr_code ? enroll.data.totp.qr_code : "";
             const secret = enroll.data.totp && enroll.data.totp.secret ? enroll.data.totp.secret : "";
+            let qrHtml = "";
+            if (qrRaw) {
+              if (String(qrRaw).trim().startsWith("<svg")) {
+                qrHtml = "<div style='margin-top:8px; background:#fff; padding:8px; border-radius:8px; width:max-content;'>" + qrRaw + "</div>";
+              } else {
+                qrHtml = "<div style='margin-top:8px; background:#fff; padding:8px; border-radius:8px; width:max-content;'><img alt='2FA QR' src='" + qrRaw + "' style='width:168px; height:168px; display:block;' /></div>";
+              }
+            }
             els.secretBox.style.display = "block";
             els.secretBox.innerHTML =
               "Scan this QR in your authenticator app, then enter the code below." +
-              (qr ? "<div style='margin-top:8px; background:#fff; padding:8px; border-radius:8px; width:max-content;'><img alt='2FA QR' src='" + qr + "' style='width:168px; height:168px; display:block;' /></div>" : "") +
-              (secret ? "<div style='margin-top:8px;'>Manual code: <span class='mono'>" + secret + "</span></div>" : "");
+              qrHtml +
+              (secret ? "<div style='margin-top:8px;'>Manual code (if QR does not show): <span class='mono'>" + secret + "</span></div>" : "<div style='margin-top:8px;'>If QR fails, enable MFA in Supabase Auth settings.</div>");
             sessionStorage.setItem("myeo_pending_factor_id", enroll.data.id);
           } else {
             els.secretBox.style.display = "none";
