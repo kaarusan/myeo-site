@@ -115,7 +115,9 @@
       <div class="msg" id="msg"></div>
     </main>
 
-    <script src="auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase-auth.js"></script>
     <script>
       (function(){
         const qs = new URLSearchParams(location.search);
@@ -160,51 +162,153 @@
           location.replace(next);
         }
 
-        if (window.myeoAuth && myeoAuth.isAuthorized()) {
-          goNext();
+        const auth = window.myeoSupabaseAuth;
+        const client = auth ? auth.getClient() : null;
+        if (!client) {
+          setMsg("Configure Supabase first in supabase-config.js", "bad");
           return;
         }
 
         els.tabSignIn.addEventListener("click", function(){ setTab("signin"); show(els.panelSignIn); setMsg(""); });
         els.tabSignUp.addEventListener("click", function(){ setTab("signup"); show(els.panelSignUp); setMsg(""); });
 
-        els.signUpBtn.addEventListener("click", function(){
-          const r = myeoAuth.signUp(els.upEmail.value, els.upPassword.value);
-          if (!r.ok) { setMsg(r.message, "bad"); return; }
-          els.secretBox.style.display = "block";
-          els.secretBox.innerHTML = "Account created.<br />Your demo 2FA secret: <span class='mono'>" + r.secret + "</span><br />Use sign in next, then enter generated code.";
-          setMsg("Account created. Now sign in.", "ok");
+        async function maybeRedirectIfReady() {
+          const ok = await auth.isAuthorizedAal2();
+          if (ok) goNext();
+        }
+
+        async function enrollAndVerifyNewFactor(code) {
+          const enroll = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: "myeo login" });
+          if (enroll.error) {
+            setMsg(enroll.error.message || "Failed to enroll MFA.", "bad");
+            return false;
+          }
+          const factorId = enroll.data.id;
+          const challenge = await client.auth.mfa.challenge({ factorId: factorId });
+          if (challenge.error) {
+            setMsg(challenge.error.message || "Failed to challenge factor.", "bad");
+            return false;
+          }
+          const verify = await client.auth.mfa.verify({
+            factorId: factorId,
+            challengeId: challenge.data.id,
+            code: String(code || "").trim()
+          });
+          if (verify.error) {
+            setMsg(verify.error.message || "Invalid verification code.", "bad");
+            return false;
+          }
+          return true;
+        }
+
+        async function verifyExistingFactor(code) {
+          const list = await client.auth.mfa.listFactors();
+          if (list.error) {
+            setMsg(list.error.message || "Could not list MFA factors.", "bad");
+            return false;
+          }
+          const verifiedTotp = (list.data && list.data.totp || []).find(function (f) { return f.status === "verified"; });
+          if (!verifiedTotp) return enrollAndVerifyNewFactor(code);
+          const challenge = await client.auth.mfa.challenge({ factorId: verifiedTotp.id });
+          if (challenge.error) {
+            setMsg(challenge.error.message || "Could not start 2FA challenge.", "bad");
+            return false;
+          }
+          const verify = await client.auth.mfa.verify({
+            factorId: verifiedTotp.id,
+            challengeId: challenge.data.id,
+            code: String(code || "").trim()
+          });
+          if (verify.error) {
+            setMsg(verify.error.message || "Invalid 2FA code.", "bad");
+            return false;
+          }
+          return true;
+        }
+
+        async function prepare2faPanel() {
+          const list = await client.auth.mfa.listFactors();
+          if (list.error) {
+            setMsg(list.error.message || "Unable to check 2FA factors.", "bad");
+            return;
+          }
+          const hasVerifiedTotp = (list.data && list.data.totp || []).some(function (f) { return f.status === "verified"; });
+          if (!hasVerifiedTotp) {
+            const enroll = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: "myeo login" });
+            if (enroll.error) {
+              setMsg(enroll.error.message || "Failed to start 2FA setup.", "bad");
+              return;
+            }
+            const qr = enroll.data.totp && enroll.data.totp.qr_code ? enroll.data.totp.qr_code : "";
+            const secret = enroll.data.totp && enroll.data.totp.secret ? enroll.data.totp.secret : "";
+            els.secretBox.style.display = "block";
+            els.secretBox.innerHTML =
+              "Scan this QR in your authenticator app, then enter the code below." +
+              (qr ? "<div style='margin-top:8px; background:#fff; padding:8px; border-radius:8px; width:max-content;'><img alt='2FA QR' src='" + qr + "' style='width:168px; height:168px; display:block;' /></div>" : "") +
+              (secret ? "<div style='margin-top:8px;'>Manual code: <span class='mono'>" + secret + "</span></div>" : "");
+            sessionStorage.setItem("myeo_pending_factor_id", enroll.data.id);
+          } else {
+            els.secretBox.style.display = "none";
+            sessionStorage.removeItem("myeo_pending_factor_id");
+          }
+          show(els.panelTwoFactor);
+        }
+
+        els.signUpBtn.addEventListener("click", async function(){
+          const email = els.upEmail.value.trim();
+          const password = els.upPassword.value;
+          const res = await client.auth.signUp({ email: email, password: password });
+          if (res.error) { setMsg(res.error.message || "Sign up failed.", "bad"); return; }
+          setMsg("Account created. Sign in to continue.", "ok");
           setTab("signin");
           show(els.panelSignIn);
-          els.inEmail.value = els.upEmail.value.trim();
+          els.inEmail.value = email;
           els.upPassword.value = "";
         });
 
-        els.signInBtn.addEventListener("click", function(){
-          const r = myeoAuth.signIn(els.inEmail.value, els.inPassword.value);
-          if (!r.ok) { setMsg(r.message, "bad"); return; }
+        els.signInBtn.addEventListener("click", async function(){
+          const email = els.inEmail.value.trim();
+          const password = els.inPassword.value;
+          const res = await client.auth.signInWithPassword({ email: email, password: password });
+          if (res.error) { setMsg(res.error.message || "Sign in failed.", "bad"); return; }
           els.inPassword.value = "";
-          if (r.twoFactorRequired) {
-            show(els.panelTwoFactor);
-            setMsg("2FA required.", "ok");
-            return;
+          setMsg("Signed in. Complete 2FA.", "ok");
+          await prepare2faPanel();
+        });
+
+        els.verify2faBtn.addEventListener("click", async function(){
+          const pending = sessionStorage.getItem("myeo_pending_factor_id");
+          let ok = false;
+          if (pending) {
+            const challenge = await client.auth.mfa.challenge({ factorId: pending });
+            if (!challenge.error) {
+              const verify = await client.auth.mfa.verify({
+                factorId: pending,
+                challengeId: challenge.data.id,
+                code: String(els.twoFactorCode.value || "").trim()
+              });
+              ok = !verify.error;
+              if (!ok) setMsg(verify.error.message || "Invalid 2FA code.", "bad");
+            } else {
+              setMsg(challenge.error.message || "Failed to challenge factor.", "bad");
+            }
+            if (ok) sessionStorage.removeItem("myeo_pending_factor_id");
+          } else {
+            ok = await verifyExistingFactor(els.twoFactorCode.value);
           }
-          setMsg("Signed in.", "ok");
-          goNext();
-        });
-
-        els.verify2faBtn.addEventListener("click", function(){
-          const r = myeoAuth.verifyTwoFactor(els.twoFactorCode.value);
-          if (!r.ok) { setMsg(r.message, "bad"); return; }
+          if (!ok) return;
           setMsg("2FA verified.", "ok");
-          goNext();
+          await maybeRedirectIfReady();
         });
 
-        els.logoutBtn.addEventListener("click", function(){
-          myeoAuth.signOut();
+        els.logoutBtn.addEventListener("click", async function(){
+          await client.auth.signOut();
+          sessionStorage.removeItem("myeo_pending_factor_id");
           show(els.panelSignIn);
           setMsg("Signed out.");
         });
+
+        maybeRedirectIfReady();
       })();
     </script>
   </body>

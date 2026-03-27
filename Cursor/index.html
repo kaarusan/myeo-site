@@ -6,6 +6,9 @@
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#070A0F" />
     <title>myeo</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="supabase-auth.js"></script>
     <style>
       :root{
         --bg0:#05060a;
@@ -175,6 +178,11 @@
       .btn:hover{ background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.16); }
       .btn:active{ transform: translateY(1px); }
       .btn:focus-visible{ outline: 2px solid rgba(182,255,234,.38); outline-offset: 2px; }
+      .topActions{
+        display:flex;
+        align-items:center;
+        gap: 8px;
+      }
 
       .btn .dot{
         width: 9px; height: 9px;
@@ -411,10 +419,13 @@
             </div>
           </div>
 
-          <button class="btn" id="musicBtn" type="button" data-on="true" aria-pressed="false" aria-label="Mute/unmute music">
-            <span class="dot" aria-hidden="true"></span>
-            <span id="musicLabel" style="font-weight:900; letter-spacing:.08em; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:12px;">SOUND</span>
-          </button>
+          <div class="topActions">
+            <a class="btn" id="authBtn" href="login.html" style="text-decoration:none; font-weight:900; letter-spacing:.08em; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:12px;">LOGIN</a>
+            <button class="btn" id="musicBtn" type="button" data-on="true" aria-pressed="false" aria-label="Mute/unmute music">
+              <span class="dot" aria-hidden="true"></span>
+              <span id="musicLabel" style="font-weight:900; letter-spacing:.08em; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:12px;">SOUND</span>
+            </button>
+          </div>
         </header>
 
         <section class="hero">
@@ -531,6 +542,7 @@
           bioEl: document.getElementById("bioEl"),
           avatarImg: document.getElementById("avatarImg"),
           musicBtn: document.getElementById("musicBtn"),
+          authBtn: document.getElementById("authBtn"),
           musicLabel: document.getElementById("musicLabel"),
           linksHint: document.getElementById("linksHint"),
           linksEl: document.getElementById("linksEl"),
@@ -786,6 +798,34 @@
           }
 
           els.musicBtn.addEventListener("click", toggleMute);
+
+          // top-right auth action
+          const auth = window.myeoSupabaseAuth;
+          if (auth && auth.isConfigured()) {
+            try {
+              const session = await auth.getSession();
+              if (!session) {
+                els.authBtn.textContent = "LOGIN";
+                els.authBtn.href = "login.html?next=" + encodeURIComponent("customize.html");
+              } else {
+                const aal = await auth.getAal();
+                const isAal2 = aal && aal.currentLevel === "aal2";
+                if (isAal2) {
+                  els.authBtn.textContent = "CUSTOMIZE";
+                  els.authBtn.href = "customize.html";
+                } else {
+                  els.authBtn.textContent = "VERIFY";
+                  els.authBtn.href = "login.html?next=" + encodeURIComponent("customize.html");
+                }
+              }
+            } catch {
+              els.authBtn.textContent = "LOGIN";
+              els.authBtn.href = "login.html?next=" + encodeURIComponent("customize.html");
+            }
+          } else {
+            els.authBtn.textContent = "LOGIN";
+            els.authBtn.href = "login.html";
+          }
         }
 
         init();
