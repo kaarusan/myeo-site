@@ -808,15 +808,8 @@
                 els.authBtn.textContent = "LOGIN";
                 els.authBtn.href = "login.html?next=" + encodeURIComponent("customize.html");
               } else {
-                const aal = await auth.getAal();
-                const isAal2 = aal && aal.currentLevel === "aal2";
-                if (isAal2) {
-                  els.authBtn.textContent = "CUSTOMIZE";
-                  els.authBtn.href = "customize.html";
-                } else {
-                  els.authBtn.textContent = "VERIFY";
-                  els.authBtn.href = "login.html?next=" + encodeURIComponent("customize.html");
-                }
+                els.authBtn.textContent = "CUSTOMIZE";
+                els.authBtn.href = "customize.html";
               }
             } catch {
               els.authBtn.textContent = "LOGIN";

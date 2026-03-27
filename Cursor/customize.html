@@ -17,8 +17,8 @@
           location.replace("login.html?next=" + next);
           return;
         }
-        const ok = await auth.isAuthorizedAal2();
-        if (!ok) {
+        const session = await auth.getSession();
+        if (!session) {
           const next = encodeURIComponent("customize.html" + location.hash);
           location.replace("login.html?next=" + next);
         }
@@ -392,6 +392,19 @@
             <input class="field" id="cfgAdminPass" type="password" placeholder="leave empty to keep current password" />
             <div class="tiny">This is client-side only (works for “keep friends out”, not real security).</div>
 
+            <h2 style="margin-top:16px;">Security</h2>
+            <div class="tiny">2FA is optional. Enable or disable it here.</div>
+            <div class="row" style="margin-top:10px;">
+              <button class="btn primary" id="enable2faBtn" type="button">Enable 2FA</button>
+              <button class="btn danger" id="disable2faBtn" type="button">Disable 2FA</button>
+            </div>
+            <div class="tiny" id="twoFaStatus">2FA status: checking...</div>
+            <div class="tiny" id="twoFaSetupBox" style="display:none;"></div>
+            <div class="row" style="margin-top:8px;">
+              <input class="field" id="twoFaCodeInput" type="text" maxlength="6" inputmode="numeric" placeholder="Enter 2FA code to finish setup" />
+              <button class="btn" id="verify2faSetupBtn" type="button">Verify Setup</button>
+            </div>
+
             <h2 style="margin-top:16px;">Links</h2>
             <div class="linksEditorHeader">
               <div>
@@ -539,6 +552,12 @@
           cfgAutoplay: document.getElementById("cfgAutoplay"),
           volReadout: document.getElementById("volReadout"),
           cfgAdminPass: document.getElementById("cfgAdminPass"),
+          enable2faBtn: document.getElementById("enable2faBtn"),
+          disable2faBtn: document.getElementById("disable2faBtn"),
+          twoFaStatus: document.getElementById("twoFaStatus"),
+          twoFaSetupBox: document.getElementById("twoFaSetupBox"),
+          twoFaCodeInput: document.getElementById("twoFaCodeInput"),
+          verify2faSetupBtn: document.getElementById("verify2faSetupBtn"),
           linksEditor: document.getElementById("linksEditor"),
           addLinkBtn: document.getElementById("addLinkBtn"),
           signOutBtn: document.getElementById("signOutBtn"),
@@ -602,6 +621,31 @@
 
         let config = loadConfig();
         syncColorVars(config);
+        const auth = window.myeoSupabaseAuth;
+        const client = auth ? auth.getClient() : null;
+        let pendingMfaFactorId = null;
+
+        function setTwoFaStatus(text, kind){
+          els.twoFaStatus.textContent = text;
+          els.twoFaStatus.style.color =
+            kind === "ok" ? "rgba(182,255,234,.80)" :
+            kind === "bad" ? "rgba(255,107,138,.85)" :
+            "rgba(255,255,255,.45)";
+        }
+
+        async function listTotpFactors(){
+          if (!client) return [];
+          const list = await client.auth.mfa.listFactors();
+          if (list.error) return [];
+          return (list.data && list.data.totp) ? list.data.totp : [];
+        }
+
+        async function refreshTwoFaStatus(){
+          const factors = await listTotpFactors();
+          const verified = factors.filter(f => f.status === "verified");
+          if (verified.length) setTwoFaStatus("2FA status: enabled", "ok");
+          else setTwoFaStatus("2FA status: disabled", "muted");
+        }
 
         function isUnlocked(){
           try { return localStorage.getItem(LS.adminUnlocked) === "1"; } catch { return false; }
@@ -842,14 +886,86 @@
         });
 
         els.signOutBtn.addEventListener("click", async () => {
-          const auth = window.myeoSupabaseAuth;
-          const client = auth ? auth.getClient() : null;
           if (client) await client.auth.signOut();
           location.replace("login.html?next=" + encodeURIComponent("customize.html"));
         });
 
+        els.enable2faBtn.addEventListener("click", async () => {
+          if (!client) return;
+          const factors = await listTotpFactors();
+          const verified = factors.find(f => f.status === "verified");
+          if (verified){
+            setTwoFaStatus("2FA status: already enabled", "ok");
+            return;
+          }
+          for (const f of factors.filter(x => x.status !== "verified")){
+            await client.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
+          }
+          const enroll = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: "myeo dashboard " + Date.now() });
+          if (enroll.error){
+            setTwoFaStatus(enroll.error.message || "Failed to enable 2FA.", "bad");
+            return;
+          }
+          pendingMfaFactorId = enroll.data.id;
+          const qrRaw = enroll.data.totp && enroll.data.totp.qr_code ? enroll.data.totp.qr_code : "";
+          const secret = enroll.data.totp && enroll.data.totp.secret ? enroll.data.totp.secret : "";
+          let qrHtml = "";
+          if (qrRaw) {
+            if (String(qrRaw).trim().startsWith("<svg")) {
+              qrHtml = "<div style='margin-top:8px; background:#fff; padding:8px; border-radius:8px; width:max-content;'>" + qrRaw + "</div>";
+            } else {
+              qrHtml = "<div style='margin-top:8px; background:#fff; padding:8px; border-radius:8px; width:max-content;'><img alt='2FA QR' src='" + qrRaw + "' style='width:168px; height:168px; display:block;' /></div>";
+            }
+          }
+          els.twoFaSetupBox.style.display = "block";
+          els.twoFaSetupBox.innerHTML =
+            "Scan this QR in your authenticator app, then enter code below." +
+            qrHtml +
+            (secret ? "<div style='margin-top:8px;'>Manual code: <span class='mono'>" + secret + "</span></div>" : "");
+          setTwoFaStatus("2FA setup started. Verify to enable.", "ok");
+        });
+
+        els.verify2faSetupBtn.addEventListener("click", async () => {
+          if (!client) return;
+          if (!pendingMfaFactorId){
+            setTwoFaStatus("Click Enable 2FA first.", "bad");
+            return;
+          }
+          const challenge = await client.auth.mfa.challenge({ factorId: pendingMfaFactorId });
+          if (challenge.error){
+            setTwoFaStatus(challenge.error.message || "Failed to challenge factor.", "bad");
+            return;
+          }
+          const verify = await client.auth.mfa.verify({
+            factorId: pendingMfaFactorId,
+            challengeId: challenge.data.id,
+            code: String(els.twoFaCodeInput.value || "").trim()
+          });
+          if (verify.error){
+            setTwoFaStatus(verify.error.message || "Invalid code.", "bad");
+            return;
+          }
+          pendingMfaFactorId = null;
+          els.twoFaCodeInput.value = "";
+          els.twoFaSetupBox.style.display = "none";
+          await refreshTwoFaStatus();
+        });
+
+        els.disable2faBtn.addEventListener("click", async () => {
+          if (!client) return;
+          const factors = await listTotpFactors();
+          for (const f of factors){
+            await client.auth.mfa.unenroll({ factorId: f.id }).catch(() => {});
+          }
+          pendingMfaFactorId = null;
+          els.twoFaCodeInput.value = "";
+          els.twoFaSetupBox.style.display = "none";
+          await refreshTwoFaStatus();
+        });
+
         setFieldValues(config);
         refreshPreview();
+        refreshTwoFaStatus();
 
         // music upload handling (stored in IndexedDB)
         els.cfgMusicFile.addEventListener("change", async () => {

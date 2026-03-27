@@ -172,33 +172,22 @@
         els.tabSignIn.addEventListener("click", function(){ setTab("signin"); show(els.panelSignIn); setMsg(""); });
         els.tabSignUp.addEventListener("click", function(){ setTab("signup"); show(els.panelSignUp); setMsg(""); });
 
-        async function maybeRedirectIfReady() {
-          const ok = await auth.isAuthorizedAal2();
-          if (ok) goNext();
+        async function hasVerifiedTotp() {
+          const list = await client.auth.mfa.listFactors();
+          if (list.error) return false;
+          return Boolean((list.data && list.data.totp || []).some(function (f) { return f.status === "verified"; }));
         }
 
-        async function enrollAndVerifyNewFactor(code) {
-          const enroll = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: "myeo login" });
-          if (enroll.error) {
-            setMsg(enroll.error.message || "Failed to enroll MFA.", "bad");
-            return false;
+        async function maybeRedirectIfReady() {
+          const session = await auth.getSession();
+          if (!session) return;
+          const requires2fa = await hasVerifiedTotp();
+          if (!requires2fa) {
+            goNext();
+            return;
           }
-          const factorId = enroll.data.id;
-          const challenge = await client.auth.mfa.challenge({ factorId: factorId });
-          if (challenge.error) {
-            setMsg(challenge.error.message || "Failed to challenge factor.", "bad");
-            return false;
-          }
-          const verify = await client.auth.mfa.verify({
-            factorId: factorId,
-            challengeId: challenge.data.id,
-            code: String(code || "").trim()
-          });
-          if (verify.error) {
-            setMsg(verify.error.message || "Invalid verification code.", "bad");
-            return false;
-          }
-          return true;
+          const ok = await auth.isAuthorizedAal2();
+          if (ok) goNext();
         }
 
         async function verifyExistingFactor(code) {
@@ -208,7 +197,10 @@
             return false;
           }
           const verifiedTotp = (list.data && list.data.totp || []).find(function (f) { return f.status === "verified"; });
-          if (!verifiedTotp) return enrollAndVerifyNewFactor(code);
+          if (!verifiedTotp) {
+            setMsg("2FA is not enabled for this account. Enable it in dashboard.", "bad");
+            return false;
+          }
           const challenge = await client.auth.mfa.challenge({ factorId: verifiedTotp.id });
           if (challenge.error) {
             setMsg(challenge.error.message || "Could not start 2FA challenge.", "bad");
@@ -234,31 +226,12 @@
           }
           const hasVerifiedTotp = (list.data && list.data.totp || []).some(function (f) { return f.status === "verified"; });
           if (!hasVerifiedTotp) {
-            const enroll = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: "myeo login" });
-            if (enroll.error) {
-              setMsg(enroll.error.message || "Failed to start 2FA setup.", "bad");
-              return;
-            }
-            const qrRaw = enroll.data.totp && enroll.data.totp.qr_code ? enroll.data.totp.qr_code : "";
-            const secret = enroll.data.totp && enroll.data.totp.secret ? enroll.data.totp.secret : "";
-            let qrHtml = "";
-            if (qrRaw) {
-              if (String(qrRaw).trim().startsWith("<svg")) {
-                qrHtml = "<div style='margin-top:8px; background:#fff; padding:8px; border-radius:8px; width:max-content;'>" + qrRaw + "</div>";
-              } else {
-                qrHtml = "<div style='margin-top:8px; background:#fff; padding:8px; border-radius:8px; width:max-content;'><img alt='2FA QR' src='" + qrRaw + "' style='width:168px; height:168px; display:block;' /></div>";
-              }
-            }
-            els.secretBox.style.display = "block";
-            els.secretBox.innerHTML =
-              "Scan this QR in your authenticator app, then enter the code below." +
-              qrHtml +
-              (secret ? "<div style='margin-top:8px;'>Manual code (if QR does not show): <span class='mono'>" + secret + "</span></div>" : "<div style='margin-top:8px;'>If QR fails, enable MFA in Supabase Auth settings.</div>");
-            sessionStorage.setItem("myeo_pending_factor_id", enroll.data.id);
-          } else {
-            els.secretBox.style.display = "none";
-            sessionStorage.removeItem("myeo_pending_factor_id");
+            setMsg("2FA not enabled yet. Sign in and enable it from dashboard.", "bad");
+            goNext();
+            return;
           }
+          els.secretBox.style.display = "none";
+          sessionStorage.removeItem("myeo_pending_factor_id");
           show(els.panelTwoFactor);
         }
 
@@ -280,30 +253,18 @@
           const res = await client.auth.signInWithPassword({ email: email, password: password });
           if (res.error) { setMsg(res.error.message || "Sign in failed.", "bad"); return; }
           els.inPassword.value = "";
+          const requires2fa = await hasVerifiedTotp();
+          if (!requires2fa) {
+            setMsg("Signed in.", "ok");
+            goNext();
+            return;
+          }
           setMsg("Signed in. Complete 2FA.", "ok");
           await prepare2faPanel();
         });
 
         els.verify2faBtn.addEventListener("click", async function(){
-          const pending = sessionStorage.getItem("myeo_pending_factor_id");
-          let ok = false;
-          if (pending) {
-            const challenge = await client.auth.mfa.challenge({ factorId: pending });
-            if (!challenge.error) {
-              const verify = await client.auth.mfa.verify({
-                factorId: pending,
-                challengeId: challenge.data.id,
-                code: String(els.twoFactorCode.value || "").trim()
-              });
-              ok = !verify.error;
-              if (!ok) setMsg(verify.error.message || "Invalid 2FA code.", "bad");
-            } else {
-              setMsg(challenge.error.message || "Failed to challenge factor.", "bad");
-            }
-            if (ok) sessionStorage.removeItem("myeo_pending_factor_id");
-          } else {
-            ok = await verifyExistingFactor(els.twoFactorCode.value);
-          }
+          const ok = await verifyExistingFactor(els.twoFactorCode.value);
           if (!ok) return;
           setMsg("2FA verified.", "ok");
           await maybeRedirectIfReady();
