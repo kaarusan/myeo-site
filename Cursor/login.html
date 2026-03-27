@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#070A0F" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';" />
     <title>myeo · Login</title>
     <style>
       :root{
@@ -64,6 +64,15 @@
       <div class="h">myeo · auth</div>
       <div class="sub">login + signup + 2fa frontend flow</div>
 
+      <div class="hp" aria-hidden="true" style="position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden;">
+        <label for="hp_website">Leave blank</label>
+        <input type="text" id="hp_website" name="website" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <div class="row" id="turnstileRow" style="display:none;margin-top:12px;">
+        <div id="turnstileMount"></div>
+      </div>
+
       <div class="tabs">
         <button class="tab active" id="tabSignIn" type="button">Sign in</button>
         <button class="tab" id="tabSignUp" type="button">Sign up</button>
@@ -118,7 +127,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="supabase-config.js"></script>
+    <script src="turnstile-runtime.js"></script>
     <script src="supabase-auth.js"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <script>
       (function(){
         const qs = new URLSearchParams(location.search);
@@ -139,8 +150,86 @@
           twoFactorCode: document.getElementById("twoFactorCode"),
           logoutBtn: document.getElementById("logoutBtn"),
           msg: document.getElementById("msg"),
-          secretBox: document.getElementById("secretBox")
+          secretBox: document.getElementById("secretBox"),
+          hpWebsite: document.getElementById("hp_website"),
+          turnstileRow: document.getElementById("turnstileRow"),
+          turnstileMount: document.getElementById("turnstileMount")
         };
+
+        let turnstileWidgetId = null;
+
+        function postSecurityEvent(type){
+          fetch("/api/security-event", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: type })
+          }).catch(function () {});
+        }
+
+        async function verifyTurnstileToken(token){
+          const res = await fetch("/api/verify-turnstile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: token || "" })
+          }).catch(function () { return null; });
+          if (!res) return { ok: false, offline: true };
+          if (res.status === 404) return { ok: true, skipped: true };
+          let data = null;
+          try { data = await res.json(); } catch { data = null; }
+          if (!res.ok) return { ok: false, data: data };
+          return { ok: Boolean(data && data.ok), data: data, skipped: Boolean(data && data.skipped) };
+        }
+
+        async function validatePasswordStrength(password){
+          const res = await fetch("/api/validate-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: password })
+          }).catch(function () { return null; });
+          if (!res) {
+            return { ok: false, message: "Could not reach server to validate password." };
+          }
+          if (res.status === 404) {
+            return { ok: false, message: "Password checks require the deployed app (Vercel), not static hosting only." };
+          }
+          let data = null;
+          try { data = await res.json(); } catch { data = null; }
+          if (res.ok && data && data.ok) return { ok: true };
+          return { ok: false, message: "Use 12+ characters with upper, lower, number, and symbol." };
+        }
+
+        function getTurnstileResponse(){
+          if (!turnstileWidgetId || !window.turnstile) return "";
+          try { return window.turnstile.getResponse(turnstileWidgetId) || ""; } catch { return ""; }
+        }
+
+        function resetTurnstile(){
+          if (turnstileWidgetId && window.turnstile) {
+            try { window.turnstile.reset(turnstileWidgetId); } catch {}
+          }
+        }
+
+        function mountTurnstileIfNeeded(){
+          const key = window.MYEO_TURNSTILE_SITE_KEY;
+          if (!key || !els.turnstileMount) return;
+          els.turnstileRow.style.display = "block";
+          function tryRender(){
+            if (!window.turnstile || !window.turnstile.render) return false;
+            if (turnstileWidgetId) return true;
+            turnstileWidgetId = window.turnstile.render(els.turnstileMount, {
+              sitekey: key,
+              theme: "dark"
+            });
+            return true;
+          }
+          if (tryRender()) return;
+          let n = 0;
+          const t = setInterval(function (){
+            n++;
+            if (tryRender() || n > 80) clearInterval(t);
+          }, 50);
+        }
+        mountTurnstileIfNeeded();
 
         function setMsg(t, kind){
           els.msg.textContent = t || "";
@@ -167,6 +256,12 @@
         const client = auth ? auth.getClient() : null;
         if (!client) {
           setMsg("Configure Supabase first in supabase-config.js", "bad");
+          return;
+        }
+
+        if (navigator.webdriver === true) {
+          setMsg("Automated browsers are not allowed here.", "bad");
+          postSecurityEvent("rate_limited_client");
           return;
         }
 
@@ -291,14 +386,35 @@
           const lock = checkLock(RL.signUp);
           if (lock.blocked){
             setMsg("Too many sign-up attempts. Try again in " + formatWait(lock.retryMs) + ".", "bad");
+            postSecurityEvent("rate_limited_client");
+            return;
+          }
+          if (els.hpWebsite && els.hpWebsite.value) {
+            postSecurityEvent("honeypot_trip");
+            setMsg("Something went wrong.", "bad");
             return;
           }
           const email = els.upEmail.value.trim();
           const password = els.upPassword.value;
+          const pwOk = await validatePasswordStrength(password);
+          if (!pwOk.ok) {
+            setMsg(pwOk.message || "Weak password.", "bad");
+            return;
+          }
+          const ts = getTurnstileResponse();
+          const tv = await verifyTurnstileToken(ts);
+          if (!tv.ok && !tv.skipped) {
+            if (tv.offline) setMsg("Network error during verification.", "bad");
+            else { setMsg("Human verification failed. Retry.", "bad"); postSecurityEvent("turnstile_failed"); }
+            resetTurnstile();
+            return;
+          }
           const res = await client.auth.signUp({ email: email, password: password });
           if (res.error) {
             registerFailure(RL.signUp);
+            postSecurityEvent("signup_failed");
             setMsg(res.error.message || "Sign up failed.", "bad");
+            resetTurnstile();
             return;
           }
           clearFailures(RL.signUp);
@@ -307,12 +423,27 @@
           show(els.panelSignIn);
           els.inEmail.value = email;
           els.upPassword.value = "";
+          resetTurnstile();
         });
 
         els.signInBtn.addEventListener("click", async function(){
           const lock = checkLock(RL.signIn);
           if (lock.blocked){
             setMsg("Too many login attempts. Try again in " + formatWait(lock.retryMs) + ".", "bad");
+            postSecurityEvent("rate_limited_client");
+            return;
+          }
+          if (els.hpWebsite && els.hpWebsite.value) {
+            postSecurityEvent("honeypot_trip");
+            setMsg("Something went wrong.", "bad");
+            return;
+          }
+          const ts = getTurnstileResponse();
+          const tv = await verifyTurnstileToken(ts);
+          if (!tv.ok && !tv.skipped) {
+            if (tv.offline) setMsg("Network error during verification.", "bad");
+            else { setMsg("Human verification failed. Retry.", "bad"); postSecurityEvent("turnstile_failed"); }
+            resetTurnstile();
             return;
           }
           const email = els.inEmail.value.trim();
@@ -320,7 +451,9 @@
           const res = await client.auth.signInWithPassword({ email: email, password: password });
           if (res.error) {
             registerFailure(RL.signIn);
+            postSecurityEvent("login_failed");
             setMsg(res.error.message || "Sign in failed.", "bad");
+            resetTurnstile();
             return;
           }
           clearFailures(RL.signIn);
@@ -344,6 +477,7 @@
           const ok = await verifyExistingFactor(els.twoFactorCode.value);
           if (!ok) {
             registerFailure(RL.twoFa);
+            postSecurityEvent("two_factor_failed");
             return;
           }
           clearFailures(RL.twoFa);

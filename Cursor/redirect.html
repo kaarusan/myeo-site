@@ -47,8 +47,19 @@
         const label = (qs.get("label") || "link").slice(0, 80);
         const CFG_KEY = "myeo_biolink_config_v1";
 
+        function showStaticMessage(text, href, linkText){
+          document.body.replaceChildren();
+          const p = document.createElement("p");
+          p.textContent = text + " ";
+          const a = document.createElement("a");
+          a.href = href;
+          a.textContent = linkText;
+          p.appendChild(a);
+          document.body.appendChild(p);
+        }
+
         if (!to){
-          document.body.innerHTML = 'Missing destination. <a href="index.html">Back</a>';
+          showStaticMessage("Missing destination.", "index.html", "Back");
           return;
         }
 
@@ -68,7 +79,7 @@
         }
 
         if (!isAllowedTarget(to)){
-          document.body.innerHTML = 'Blocked unsafe redirect. <a href="index.html">Back</a>';
+          showStaticMessage("Blocked unsafe redirect.", "index.html", "Back");
           return;
         }
 

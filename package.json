@@ -1,0 +1,31 @@
+{
+  "name": "myeo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "prebuild": "node scripts/sync-public.mjs && node scripts/inject-public-config.mjs",
+    "build": "next build",
+    "dev": "node scripts/sync-public.mjs && node scripts/inject-public-config.mjs && next dev",
+    "lint": "eslint \"Cursor/**/*.js\" \"middleware.ts\" \"scripts/**/*.mjs\" --max-warnings 0",
+    "audit": "npm audit --audit-level=high"
+  },
+  "dependencies": {
+    "next": "15.5.14",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "zod": "3.24.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.16.0",
+    "@typescript-eslint/parser": "8.18.0",
+    "globals": "15.13.0",
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.1",
+    "eslint": "9.39.4",
+    "eslint-plugin-security": "3.0.1",
+    "typescript": "5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

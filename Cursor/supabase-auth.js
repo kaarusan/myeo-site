@@ -13,7 +13,14 @@
     if (!global.supabase || !global.supabase.createClient) return null;
     if (!global.__myeoSupabaseClient) {
       const c = cfg();
-      global.__myeoSupabaseClient = global.supabase.createClient(c.url, c.anonKey);
+      global.__myeoSupabaseClient = global.supabase.createClient(c.url, c.anonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          flowType: "pkce",
+        },
+      });
     }
     return global.__myeoSupabaseClient;
   }

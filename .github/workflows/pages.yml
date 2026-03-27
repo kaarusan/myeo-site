@@ -22,15 +22,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build static site bundle
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.MYEO_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.MYEO_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${{ secrets.MYEO_TURNSTILE_SITE_KEY }}
+        run: node scripts/sync-public.mjs && node scripts/inject-public-config.mjs
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: "./Cursor"
+          path: "./public/Cursor"
 
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-

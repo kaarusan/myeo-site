@@ -1,0 +1,14 @@
+node_modules/
+.next/
+out/
+public/
+
+.env
+.env.*
+!.env.example
+
+Cursor/supabase-config.js
+
+npm-debug.log*
+.DS_Store
+.vercel
