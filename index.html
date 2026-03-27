@@ -1,0 +1,768 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>myeo</title>
+    <meta http-equiv="refresh" content="0; url=./Cursor/index.html" />
+    <style>
+      body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#070A0F;color:#fff;font:500 15px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
+      a{color:#b6ffea;text-decoration:none}
+    </style>
+  </head>
+  <body>
+    Redirecting to <a href="./Cursor/index.html">/Cursor/index.html</a>...
+    <script>window.location.replace("./Cursor/index.html");</script>
+  </body>
+</html>
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070A0F" />
+    <title>myeo</title>
+    <style>
+      :root{
+        --bg0:#05060a;
+        --bg1:#070916;
+        --card:rgba(10, 12, 22, .55);
+        --card2:rgba(10, 12, 22, .78);
+        --line:rgba(255,255,255,.09);
+        --text:rgba(255,255,255,.92);
+        --muted:rgba(255,255,255,.62);
+        --faint:rgba(255,255,255,.42);
+        --accent:#b6ffea;
+        --accent2:#7aa2ff;
+        --danger:#ff6b8a;
+        --shadow: 0 24px 80px rgba(0,0,0,.55);
+        --blur: 16px;
+        --r: 18px;
+      }
+
+      *{ box-sizing:border-box; }
+      html,body{ height:100%; }
+      body{
+        margin:0;
+        color:var(--text);
+        background:
+          radial-gradient(1200px 700px at 20% 10%, rgba(122,162,255,.22), transparent 60%),
+          radial-gradient(900px 650px at 80% 40%, rgba(182,255,234,.18), transparent 55%),
+          radial-gradient(1000px 900px at 50% 110%, rgba(255,107,138,.12), transparent 60%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+        font: 500 15px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        overflow-x:hidden;
+      }
+
+      /* scanlines + subtle grid */
+      body::before{
+        content:"";
+        position:fixed;
+        inset:0;
+        pointer-events:none;
+        background:
+          repeating-linear-gradient(transparent 0 6px, rgba(255,255,255,.03) 6px 7px),
+          linear-gradient(to right, rgba(255,255,255,.06) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255,255,255,.04) 1px, transparent 1px);
+        background-size: 100% 7px, 80px 80px, 80px 80px;
+        opacity:.08;
+        mix-blend-mode: overlay;
+        animation: gridShift 14s ease-in-out infinite alternate;
+      }
+      @keyframes gridShift{
+        0%{ transform: translate3d(-2%, -1%, 0); }
+        100%{ transform: translate3d(2%, 1.5%, 0); }
+      }
+
+      .wash{
+        position:fixed; inset:-45%;
+        background:
+          conic-gradient(from 210deg at 50% 50%,
+            rgba(122,162,255,.12),
+            rgba(182,255,234,.09),
+            rgba(255,107,138,.08),
+            rgba(122,162,255,.12));
+        filter: blur(46px) saturate(125%);
+        opacity:.55;
+        animation: drift 18s ease-in-out infinite alternate;
+        pointer-events:none;
+      }
+      @keyframes drift{
+        0%{ transform: translate3d(-4%, -2%, 0) rotate(-6deg) scale(1.02); }
+        100%{ transform: translate3d(4%, 3%, 0) rotate(10deg) scale(1.08); }
+      }
+
+      .grain{
+        position:fixed; inset:0;
+        pointer-events:none;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+        mix-blend-mode: overlay;
+        opacity:.055;
+      }
+
+      .wrap{
+        min-height:100%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding: 46px 18px;
+        position:relative;
+      }
+
+      .card{
+        width:min(620px, 100%);
+        border-radius: var(--r);
+        background: var(--card);
+        border:1px solid var(--line);
+        backdrop-filter: blur(var(--blur));
+        -webkit-backdrop-filter: blur(var(--blur));
+        box-shadow: var(--shadow);
+        overflow:hidden;
+        position:relative;
+      }
+
+      .top{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap: 12px;
+        padding: 16px 16px 0 16px;
+      }
+
+      .mark{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        min-width:0;
+      }
+      .mark .sig{
+        width: 38px; height: 38px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,.13);
+        background:
+          radial-gradient(120% 120% at 20% 15%, rgba(182,255,234,.35), transparent 55%),
+          radial-gradient(120% 120% at 85% 80%, rgba(122,162,255,.28), transparent 55%),
+          rgba(255,255,255,.02);
+        box-shadow: 0 18px 45px rgba(0,0,0,.35);
+        display:grid;
+        place-items:center;
+        color: rgba(255,255,255,.82);
+        font-weight: 800;
+        letter-spacing: .04em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      .mark .txt{
+        display:flex; flex-direction:column;
+        min-width:0;
+      }
+      .mark .txt .brand{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-weight: 850;
+        letter-spacing: .06em;
+        font-size: 13px;
+        color: rgba(255,255,255,.75);
+        text-transform: uppercase;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .mark .txt .sub{
+        color: rgba(255,255,255,.40);
+        font-size: 12px;
+        margin-top: 2px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+
+      .btn{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.02);
+        color:var(--text);
+        padding: 10px 12px;
+        border-radius: 14px;
+        cursor:pointer;
+        user-select:none;
+        transition: transform .12s ease, background .12s ease, border-color .12s ease;
+        display:inline-flex;
+        align-items:center;
+        gap:10px;
+      }
+      .btn:hover{ background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.16); }
+      .btn:active{ transform: translateY(1px); }
+      .btn:focus-visible{ outline: 2px solid rgba(182,255,234,.38); outline-offset: 2px; }
+
+      .btn .dot{
+        width: 9px; height: 9px;
+        border-radius: 999px;
+        background: rgba(255,255,255,.38);
+        box-shadow: 0 0 0 4px rgba(255,255,255,.03);
+      }
+      .btn[data-on="true"] .dot{
+        background: var(--accent);
+        box-shadow: 0 0 0 4px rgba(182,255,234,.07), 0 0 22px rgba(182,255,234,.22);
+      }
+
+      .hero{
+        padding: 16px 18px 10px 18px;
+        display:flex;
+        align-items:center;
+        gap: 16px;
+      }
+      .avatar{
+        width: 78px; height: 78px;
+        border-radius: 22px;
+        border:1px solid rgba(255,255,255,.14);
+        background:
+          radial-gradient(120% 120% at 20% 20%, rgba(182,255,234,.32), transparent 60%),
+          radial-gradient(120% 120% at 80% 85%, rgba(122,162,255,.26), transparent 60%),
+          rgba(255,255,255,.02);
+        overflow:hidden;
+        box-shadow: 0 18px 48px rgba(0,0,0,.4);
+        position:relative;
+        flex:0 0 auto;
+      }
+      .avatar::after{
+        content:"";
+        position:absolute;
+        inset:-30%;
+        background: linear-gradient(120deg, transparent, rgba(255,255,255,.13), transparent);
+        transform: rotate(18deg);
+        opacity:.35;
+        animation: sheen 4.6s ease-in-out infinite;
+        pointer-events:none;
+      }
+      @keyframes sheen{
+        0%{ transform: translateX(-18%) rotate(18deg); }
+        100%{ transform: translateX(18%) rotate(18deg); }
+      }
+      .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+      .title{
+        min-width:0;
+        flex: 1 1 auto;
+      }
+      .name{
+        margin:0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 26px;
+        letter-spacing: .02em;
+        font-weight: 900;
+        line-height:1.05;
+      }
+      .bio{
+        margin: 8px 0 0 0;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 520;
+        max-width: 48ch;
+      }
+
+      .divider{
+        height:1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent);
+        margin: 4px 18px 0 18px;
+      }
+
+      .content{
+        padding: 14px 18px 18px 18px;
+      }
+      .section-title{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        margin-bottom: 12px;
+      }
+      .section-title h2{
+        margin:0;
+        font-size: 12px;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.40);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      .hint{
+        color: rgba(255,255,255,.34);
+        font-size: 12px;
+      }
+
+      .links{
+        display:grid;
+        gap: 10px;
+      }
+
+      .link{
+        text-decoration:none;
+        color:inherit;
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.02);
+        border-radius: 16px;
+        padding: 12px 12px 12px 14px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap: 12px;
+        transition: transform .12s ease, background .12s ease, border-color .12s ease;
+      }
+      .link:hover{
+        transform: translateY(-1px);
+        background: rgba(255,255,255,.04);
+        border-color: rgba(182,255,234,.22);
+        box-shadow: 0 0 0 2px rgba(182,255,234,.06) inset;
+      }
+      .link:active{ transform: translateY(0px); }
+
+      .left{
+        display:flex;
+        align-items:center;
+        gap: 10px;
+        min-width:0;
+      }
+
+      .badge{
+        width: 30px; height: 30px;
+        border-radius: 12px;
+        background: rgba(255,255,255,.03);
+        border:1px solid rgba(255,255,255,.10);
+        display:grid;
+        place-items:center;
+        color: rgba(255,255,255,.78);
+        flex:0 0 auto;
+      }
+
+      .label{
+        display:flex;
+        flex-direction:column;
+        min-width:0;
+      }
+      .label .t{
+        font-weight: 860;
+        letter-spacing: .02em;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .label .s{
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 2px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .arrow{
+        color: rgba(255,255,255,.45);
+        flex:0 0 auto;
+      }
+
+      .footer{
+        border-top: 1px solid rgba(255,255,255,.06);
+        padding: 12px 18px 16px 18px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap: 12px;
+        color: rgba(255,255,255,.58);
+        font-size: 12px;
+      }
+      .kpi{
+        display:flex;
+        gap: 10px;
+        align-items:center;
+        flex-wrap:wrap;
+      }
+      .kpi strong{
+        color: rgba(255,255,255,.88);
+        font-weight: 900;
+      }
+      .adminGhost{
+        opacity:.20;
+        user-select:none;
+      }
+
+      /* Audio */
+      #bgm{ display:none; }
+      .musicHint{
+        margin-top: 3px;
+        color: rgba(255,255,255,.40);
+        font-size: 12px;
+      }
+
+      @media (max-width: 460px){
+        .wrap{ padding: 34px 14px; }
+        .hero{ padding: 14px 14px 8px 14px; }
+        .content{ padding: 12px 14px 16px 14px; }
+        .top{ padding: 14px 14px 0 14px; }
+        .divider{ margin: 4px 14px 0 14px; }
+        .footer{ padding: 10px 14px 14px 14px; }
+        .name{ font-size: 24px; }
+        .avatar{ width: 70px; height: 70px; border-radius: 20px; }
+      }
+
+      @media (prefers-reduced-motion: reduce){
+        body::before, .wash, .avatar::after{ animation:none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wash" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <div class="wrap">
+      <main class="card">
+        <header class="top">
+          <div class="mark" aria-label="Brand">
+            <div class="sig" id="sig">M</div>
+            <div class="txt">
+              <div class="brand" id="brandText">MYEO</div>
+              <div class="sub" id="brandSub">links + sound</div>
+            </div>
+          </div>
+
+          <button class="btn" id="musicBtn" type="button" data-on="true" aria-pressed="false" aria-label="Mute/unmute music">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="musicLabel" style="font-weight:900; letter-spacing:.08em; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size:12px;">SOUND</span>
+          </button>
+        </header>
+
+        <section class="hero">
+          <div class="avatar" aria-label="Avatar">
+            <img id="avatarImg" alt="Avatar" src="" />
+          </div>
+          <div class="title">
+            <h1 class="name" id="nameEl">myeo</h1>
+            <p class="bio" id="bioEl">dark minimal. building things.</p>
+          </div>
+        </section>
+
+        <div class="divider" role="separator" aria-hidden="true"></div>
+
+        <section class="content">
+          <div class="section-title">
+            <h2>Links</h2>
+            <div class="hint" id="linksHint">click to open</div>
+          </div>
+          <nav class="links" id="linksEl" aria-label="Links list"></nav>
+        </section>
+
+        <footer class="footer">
+          <div class="kpi" aria-label="Visitor counter">
+            <span>visits</span>
+            <strong id="visitsCount">—</strong>
+            <span style="opacity:.35;">·</span>
+            <span>today</span>
+            <strong id="todayCount">—</strong>
+          </div>
+          <div class="adminGhost" title="admin.html">admin</div>
+        </footer>
+      </main>
+    </div>
+
+    <audio id="bgm" preload="auto" loop></audio>
+
+    <script>
+      (function(){
+        const LS = {
+          cfg: "myeo_biolink_config_v1",
+          analytics: "myeo_biolink_analytics_v1",
+          adminUnlocked: "myeo_admin_unlocked_v1"
+        };
+
+        function hash32(str){
+          // FNV-1a 32-bit
+          let h = 0x811c9dc5;
+          for (let i = 0; i < str.length; i++){
+            h ^= str.charCodeAt(i);
+            h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+          }
+          return h >>> 0;
+        }
+
+        const DEFAULT_CONFIG = {
+          name: "myeo",
+          tagline: "dark minimal. building things.",
+          brandSub: "guns.lol-ish",
+          admin: {
+            passHash: hash32("myeo")
+          },
+          accents: {
+            accent: "#b6ffea",
+            accent2: "#7aa2ff"
+          },
+          avatar: {
+            avatarUrl: "",
+            avatarDataUrl: ""
+          },
+          music: {
+            src: "https://cdn.pixabay.com/download/audio/2022/03/09/audio_0c2b1b66e6.mp3?filename=lofi-study-112191.mp3",
+            volume: 0.85,
+            autoplay: true,
+            loop: true
+          },
+          links: [
+            { label: "Instagram", url: "https://instagram.com/", subtitle: "@myeo" },
+            { label: "NameMC", url: "https://namemc.com/", subtitle: "minecraft profile" },
+            { label: "Projects", url: "https://github.com/kaarusan", subtitle: "things i've made" }
+          ]
+        };
+
+        const els = {
+          sig: document.getElementById("sig"),
+          brandText: document.getElementById("brandText"),
+          brandSub: document.getElementById("brandSub"),
+          nameEl: document.getElementById("nameEl"),
+          bioEl: document.getElementById("bioEl"),
+          avatarImg: document.getElementById("avatarImg"),
+          musicBtn: document.getElementById("musicBtn"),
+          musicLabel: document.getElementById("musicLabel"),
+          linksHint: document.getElementById("linksHint"),
+          linksEl: document.getElementById("linksEl"),
+          visitsCount: document.getElementById("visitsCount"),
+          todayCount: document.getElementById("todayCount"),
+          bgm: document.getElementById("bgm")
+        };
+
+        const qs = new URLSearchParams(location.search);
+        const nobump = qs.get("nobump") === "1";
+
+        function toUrlBase64(str){
+          const b64 = btoa(unescape(encodeURIComponent(str)));
+          return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
+        }
+        function fromUrlBase64(b64){
+          b64 = (b64 || "").replace(/-/g, "+").replace(/_/g, "/");
+          const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+          const str = atob(b64 + pad);
+          return decodeURIComponent(escape(str));
+        }
+
+        function safeJsonParse(s){
+          try { return JSON.parse(s); } catch { return null; }
+        }
+
+        function loadConfig(){
+          const fromUrl = qs.get("config");
+          if (fromUrl){
+            try{
+              const decoded = fromUrl === "default" ? DEFAULT_CONFIG : safeJsonParse(fromUrl.startsWith("{") ? fromUrl : fromUrlBase64(fromUrl));
+              if (decoded && typeof decoded === "object") return decoded;
+            } catch {}
+          }
+
+          try{
+            const raw = localStorage.getItem(LS.cfg);
+            if (!raw) return DEFAULT_CONFIG;
+            const parsed = safeJsonParse(raw);
+            return (parsed && typeof parsed === "object") ? parsed : DEFAULT_CONFIG;
+          }catch{
+            return DEFAULT_CONFIG;
+          }
+        }
+
+        function saveConfig(cfg){
+          try { localStorage.setItem(LS.cfg, JSON.stringify(cfg)); } catch {}
+        }
+
+        function clamp01(n, fallback){
+          const x = Number(n);
+          if (Number.isFinite(x)) return Math.max(0, Math.min(1, x));
+          return fallback;
+        }
+
+        function avatarFallback(name, accentA, accentB){
+          const n = (name || "myeo").slice(0, 2).toUpperCase();
+          const svg =
+            `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
+              <defs>
+                <radialGradient id="g" cx="30%" cy="30%" r="90%">
+                  <stop offset="0" stop-color="${accentA}" stop-opacity=".55"/>
+                  <stop offset=".55" stop-color="${accentB}" stop-opacity=".28"/>
+                  <stop offset="1" stop-color="#070A0F" stop-opacity="1"/>
+                </radialGradient>
+                <linearGradient id="s" x1="0" x2="1" y1="0" y2="1">
+                  <stop offset="0" stop-color="${accentA}" stop-opacity=".9"/>
+                  <stop offset="1" stop-color="${accentB}" stop-opacity=".85"/>
+                </linearGradient>
+              </defs>
+              <rect width="240" height="240" rx="36" fill="url(#g)"/>
+              <path d="M52 162c22-28 44-42 68-42s46 14 68 42" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="12" stroke-linecap="round"/>
+              <circle cx="120" cy="92" r="36" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.55)" stroke-width="9"/>
+              <text x="120" y="205" text-anchor="middle" font-size="24" font-family="ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace" fill="url(#s)" opacity=".9" font-weight="900">${n}</text>
+            </svg>`;
+          return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+        }
+
+        function bumpAnalytics(){
+          const now = Date.now();
+          const d = new Date(now);
+          const tk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+
+          let a = null;
+          try{
+            const raw = localStorage.getItem(LS.analytics);
+            a = raw ? safeJsonParse(raw) : null;
+          }catch{ a = null; }
+          if (!a || typeof a !== "object"){
+            a = { total: 0, days: {}, first: now, last: now };
+          }
+          a.total = (a.total || 0) + 1;
+          a.first = a.first || now;
+          a.last = now;
+          a.days = a.days && typeof a.days === "object" ? a.days : {};
+          a.days[tk] = (a.days[tk] || 0) + 1;
+
+          try{ localStorage.setItem(LS.analytics, JSON.stringify(a)); }catch{}
+          return a;
+        }
+
+        function renderCounter(a){
+          const today = (() => {
+            const d = new Date();
+            const tk = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+            return (a?.days && a.days[tk]) ? a.days[tk] : 0;
+          })();
+          els.visitsCount.textContent = String(a?.total ?? 0);
+          els.todayCount.textContent = String(today);
+        }
+
+        function applyConfig(cfg){
+          const name = (cfg?.name || DEFAULT_CONFIG.name).toString();
+          const tagline = (cfg?.tagline || DEFAULT_CONFIG.tagline).toString();
+          const brandSub = (cfg?.brandSub || DEFAULT_CONFIG.brandSub).toString();
+          const accent = cfg?.accents?.accent || DEFAULT_CONFIG.accents.accent;
+          const accent2 = cfg?.accents?.accent2 || DEFAULT_CONFIG.accents.accent2;
+          const links = Array.isArray(cfg?.links) ? cfg.links : DEFAULT_CONFIG.links;
+
+          document.documentElement.style.setProperty("--accent", accent);
+          document.documentElement.style.setProperty("--accent2", accent2);
+
+          document.title = name;
+          els.sig.textContent = (name[0] || "M").toUpperCase();
+          els.brandText.textContent = String(name).toUpperCase();
+          els.brandSub.textContent = brandSub;
+          els.nameEl.textContent = name;
+          els.bioEl.textContent = tagline;
+
+          // avatar
+          const url = cfg?.avatar?.avatarDataUrl || cfg?.avatar?.avatarUrl;
+          els.avatarImg.src = url ? url : avatarFallback(name, accent, accent2);
+
+          // links
+          els.linksEl.innerHTML = "";
+          const clean = links.filter(l => l && typeof l === "object" && l.label && l.url);
+          for (const l of clean){
+            const a = document.createElement("a");
+            a.className = "link";
+            a.href = l.url;
+            a.target = "_blank";
+            a.rel = "noreferrer";
+
+            const iconText = (l.label || "").trim().slice(0, 1).toUpperCase();
+            a.innerHTML = `
+              <span class="left">
+                <span class="badge" aria-hidden="true">${iconText || "•"}</span>
+                <span class="label">
+                  <span class="t">${escapeHtml(l.label)}</span>
+                  <span class="s">${escapeHtml(l.subtitle || "")}</span>
+                </span>
+              </span>
+              <span class="arrow" aria-hidden="true">↗</span>
+            `;
+            els.linksEl.appendChild(a);
+          }
+          if (!clean.length){
+            els.linksHint.textContent = "no links configured";
+          }
+
+          // audio
+          const music = cfg?.music || DEFAULT_CONFIG.music;
+          const src = music?.src || "";
+          if (!src){
+            els.musicBtn.disabled = true;
+            els.musicBtn.style.opacity = ".45";
+            els.musicBtn.setAttribute("data-on", "false");
+            els.musicLabel.textContent = "NO AUDIO";
+            return;
+          }
+          els.bgm.loop = Boolean(music?.loop ?? true);
+          els.bgm.volume = clamp01(music?.volume, DEFAULT_CONFIG.music.volume);
+          els.bgm.src = src;
+
+          // Default wants unmuted; autoplay is best-effort and may require interaction.
+          els.bgm.muted = false;
+          els.musicBtn.disabled = false;
+          els.musicBtn.style.opacity = "1";
+          els.musicBtn.setAttribute("data-on", "true");
+          els.musicBtn.setAttribute("aria-pressed", "false");
+          els.musicLabel.textContent = "SOUND";
+
+          // autoplay (best effort)
+          const wantsAutoplay = Boolean(music?.autoplay ?? true);
+          if (wantsAutoplay){
+            els.bgm.play().then(() => {
+              // started
+            }).catch(() => {
+              // likely blocked by browser; keep button state as "SOUND"
+              els.musicLabel.textContent = "TAP TO ENABLE";
+              els.bgm.muted = false;
+            });
+          }
+        }
+
+        function escapeHtml(s){
+          return String(s ?? "")
+            .replaceAll("&","&amp;")
+            .replaceAll("<","&lt;")
+            .replaceAll(">","&gt;")
+            .replaceAll("\"","&quot;")
+            .replaceAll("'","&#039;");
+        }
+
+        function toggleMute(){
+          const a = els.bgm;
+          if (!a?.src) return;
+          if (a.muted){
+            a.muted = false;
+            els.musicBtn.setAttribute("data-on", "true");
+            els.musicBtn.setAttribute("aria-pressed", "false");
+            els.musicLabel.textContent = "SOUND";
+            a.play().catch(()=> {
+              els.musicLabel.textContent = "TAP TO ENABLE";
+            });
+          } else {
+            a.muted = true;
+            els.musicBtn.setAttribute("data-on", "false");
+            els.musicBtn.setAttribute("aria-pressed", "true");
+            els.musicLabel.textContent = "MUTED";
+          }
+        }
+
+        function init(){
+          let cfg = loadConfig();
+          // If loaded from URL param, save it so refresh keeps it.
+          if (qs.get("config")) saveConfig(cfg);
+          applyConfig(cfg);
+
+          if (!nobump){
+            const a = bumpAnalytics();
+            renderCounter(a);
+          } else {
+            // For preview mode: still render the last stored analytics if present.
+            let a = null;
+            try{ a = safeJsonParse(localStorage.getItem(LS.analytics) || "null"); }catch{ a = null; }
+            if (!a) a = { total: 0, days: {} };
+            renderCounter(a);
+          }
+
+          els.musicBtn.addEventListener("click", toggleMute);
+        }
+
+        init();
+      })();
+    </script>
+  </body>
+</html>

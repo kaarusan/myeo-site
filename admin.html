@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>myeo · Admin</title>
+    <meta http-equiv="refresh" content="0; url=./Cursor/admin.html" />
+    <style>
+      body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#070A0F;color:#fff;font:500 15px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
+      a{color:#b6ffea;text-decoration:none}
+    </style>
+  </head>
+  <body>
+    Redirecting to <a href="./Cursor/admin.html">/Cursor/admin.html</a>...
+    <script>window.location.replace("./Cursor/admin.html");</script>
+  </body>
+</html>
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070A0F" />
+    <title>myeo · Admin</title>
+    <style>
+      :root{
+        --bg0:#05060a;
+        --bg1:#070916;
+        --card:rgba(10, 12, 22, .55);
+        --line:rgba(255,255,255,.10);
+        --text:rgba(255,255,255,.92);
+        --muted:rgba(255,255,255,.62);
+        --danger:#ff6b8a;
+        --accent:#b6ffea;
+        --accent2:#7aa2ff;
+        --shadow: 0 24px 80px rgba(0,0,0,.55);
+        --blur: 16px;
+        --r: 18px;
+      }
+      *{ box-sizing:border-box; }
+      html,body{ height:100%; }
+      body{
+        margin:0;
+        color:var(--text);
+        background:
+          radial-gradient(1200px 700px at 20% 10%, rgba(122,162,255,.22), transparent 60%),
+          radial-gradient(900px 650px at 80% 40%, rgba(182,255,234,.18), transparent 55%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+        font: 500 15px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        overflow-x:hidden;
+      }
+      .grain{
+        position:fixed; inset:0;
+        pointer-events:none;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+        mix-blend-mode: overlay;
+        opacity:.05;
+      }
+      .wrap{
+        min-height:100%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        padding: 40px 16px;
+      }
+      .card{
+        width:min(900px, 100%);
+        background: var(--card);
+        border:1px solid var(--line);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(var(--blur));
+        -webkit-backdrop-filter: blur(var(--blur));
+        overflow:hidden;
+      }
+      header{
+        padding: 16px 16px 0 16px;
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:12px;
+      }
+      .title{
+        display:flex;
+        flex-direction:column;
+        gap:4px;
+      }
+      .title .h{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-weight: 950;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+      }
+      .title .s{ color:var(--muted); font-size:12px; }
+      .btn{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.02);
+        color:var(--text);
+        padding: 10px 12px;
+        border-radius: 14px;
+        cursor:pointer;
+        user-select:none;
+        transition: transform .12s ease, background .12s ease, border-color .12s ease;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:10px;
+      }
+      .btn:hover{ background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.16); }
+      .btn:active{ transform: translateY(1px); }
+      .btn.danger{ border-color: rgba(255,107,138,.28); }
+      .btn.primary{ border-color: rgba(182,255,234,.24); background: rgba(182,255,234,.06); }
+      .body{
+        padding: 14px 16px 16px 16px;
+      }
+      .grid{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+      .stat{
+        border:1px solid rgba(255,255,255,.08);
+        background: rgba(0,0,0,.12);
+        border-radius: 16px;
+        padding: 12px;
+      }
+      .stat .n{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-weight: 950;
+        font-size: 22px;
+        letter-spacing: .04em;
+      }
+      .stat .d{
+        color: var(--muted);
+        font-size: 12px;
+        margin-top: 4px;
+      }
+      .row{
+        display:flex;
+        gap: 10px;
+        align-items:flex-end;
+        flex-wrap:wrap;
+        margin-top: 12px;
+      }
+      .field{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.18);
+        color:var(--text);
+        border-radius: 14px;
+        padding: 10px 12px;
+        width: 100%;
+        min-width: 260px;
+        font: inherit;
+      }
+      .mono{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      .muted{ color:var(--muted); font-size:12px; }
+      .hidden{ display:none; }
+      ul{
+        margin: 10px 0 0 0;
+        padding: 0;
+        list-style: none;
+        display:grid;
+        gap: 8px;
+      }
+      li{
+        border:1px solid rgba(255,255,255,.08);
+        background: rgba(0,0,0,.12);
+        border-radius: 14px;
+        padding: 10px 12px;
+        display:flex;
+        justify-content:space-between;
+        gap: 10px;
+      }
+      .dayL{ color: rgba(255,255,255,.72); }
+      .dayN{ font-weight: 950; }
+      @media (max-width: 620px){
+        .grid{ grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="wrap">
+      <main class="card">
+        <header>
+          <div class="title">
+            <div class="h">myeo · Admin</div>
+            <div class="s">analytics from localStorage · client-side only</div>
+          </div>
+          <a class="btn" href="index.html" style="text-decoration:none;">Back to page</a>
+        </header>
+
+        <section class="body">
+          <section id="lockedView">
+            <div class="muted">Password protects the analytics view (not a real secret).</div>
+            <div class="row">
+              <input id="pass" class="field" type="password" placeholder="password" autocomplete="current-password" />
+              <button id="unlockBtn" class="btn primary" type="button">Unlock</button>
+              <button id="clearUnlockBtn" class="btn" type="button" title="Locks the admin view in this browser">Lock</button>
+            </div>
+            <div class="muted" id="msg" style="margin-top:10px;"></div>
+          </section>
+
+          <section id="adminView" class="hidden">
+            <div class="muted">Unlocked.</div>
+            <div class="grid">
+              <div class="stat"><div class="n" id="statTotal">—</div><div class="d">total pageviews</div></div>
+              <div class="stat"><div class="n" id="statToday">—</div><div class="d">today</div></div>
+              <div class="stat"><div class="n" id="statFirst">—</div><div class="d">first visit</div></div>
+              <div class="stat"><div class="n" id="statLast">—</div><div class="d">last visit</div></div>
+            </div>
+
+            <div class="row">
+              <button id="resetBtn" class="btn danger" type="button">Reset analytics</button>
+              <div class="muted">stored under <span class="mono" id="keysHint"></span></div>
+            </div>
+
+            <div style="margin-top:14px;">
+              <div class="muted">last 7 days</div>
+              <ul id="lastDays"></ul>
+            </div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      (function(){
+        const LS = {
+          cfg: "myeo_biolink_config_v1",
+          analytics: "myeo_biolink_analytics_v1",
+          adminUnlocked: "myeo_admin_unlocked_v1"
+        };
+
+        function hash32(str){
+          let h = 0x811c9dc5;
+          for (let i = 0; i < str.length; i++){
+            h ^= str.charCodeAt(i);
+            h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+          }
+          return h >>> 0;
+        }
+
+        const DEFAULT_PASS_HASH = hash32("myeo");
+
+        function safeJsonParse(s){
+          try { return JSON.parse(s); } catch { return null; }
+        }
+
+        function loadCfg(){
+          try{
+            const raw = localStorage.getItem(LS.cfg);
+            if (!raw) return null;
+            const p = safeJsonParse(raw);
+            return (p && typeof p === "object") ? p : null;
+          }catch{ return null; }
+        }
+
+        function loadAnalytics(){
+          try{
+            const raw = localStorage.getItem(LS.analytics);
+            if (!raw) return null;
+            const a = safeJsonParse(raw);
+            return (a && typeof a === "object") ? a : null;
+          }catch{
+            return null;
+          }
+        }
+
+        function todayKey(d = new Date()){
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+        }
+
+        function formatWhen(ts){
+          if (!ts) return "—";
+          const d = new Date(ts);
+          if (String(d) === "Invalid Date") return "—";
+          const s = d.toLocaleString(undefined, { year:"numeric", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+          return s.replace(",", "");
+        }
+
+        const cfg = loadCfg() || {};
+        const expectedHash = cfg?.admin?.passHash ?? DEFAULT_PASS_HASH;
+
+        const els = {
+          locked: document.getElementById("lockedView"),
+          admin: document.getElementById("adminView"),
+          pass: document.getElementById("pass"),
+          unlockBtn: document.getElementById("unlockBtn"),
+          clearUnlockBtn: document.getElementById("clearUnlockBtn"),
+          msg: document.getElementById("msg"),
+          statTotal: document.getElementById("statTotal"),
+          statToday: document.getElementById("statToday"),
+          statFirst: document.getElementById("statFirst"),
+          statLast: document.getElementById("statLast"),
+          resetBtn: document.getElementById("resetBtn"),
+          lastDays: document.getElementById("lastDays"),
+          keysHint: document.getElementById("keysHint")
+        };
+
+        function isUnlocked(){
+          try { return localStorage.getItem(LS.adminUnlocked) === "1"; } catch { return false; }
+        }
+
+        function setUnlocked(v){
+          try{ localStorage.setItem(LS.adminUnlocked, v ? "1" : "0"); }catch{}
+        }
+
+        function renderAdmin(){
+          const a = loadAnalytics() || { total:0, days:{}, first:null, last:null };
+          const tk = todayKey();
+
+          els.statTotal.textContent = String(a?.total ?? 0);
+          els.statToday.textContent = String((a?.days && a.days[tk]) ? a.days[tk] : 0);
+          els.statFirst.textContent = formatWhen(a?.first);
+          els.statLast.textContent = formatWhen(a?.last);
+
+          // last 7 days
+          const ul = els.lastDays;
+          ul.innerHTML = "";
+          const base = new Date();
+          for (let i = 6; i >= 0; i--){
+            const d = new Date(base.getTime() - i * 86400000);
+            const k = todayKey(d);
+            const n = (a?.days && a.days[k]) ? a.days[k] : 0;
+            const li = document.createElement("li");
+            li.innerHTML = `<span class="dayL mono">${k}</span><span class="dayN mono">${n}</span>`;
+            ul.appendChild(li);
+          }
+
+          els.keysHint.textContent = LS.analytics;
+        }
+
+        function setMsg(t, color){
+          els.msg.textContent = t || "";
+          els.msg.style.color = color || "rgba(255,255,255,.65)";
+        }
+
+        function showAdmin(){
+          els.locked.classList.add("hidden");
+          els.admin.classList.remove("hidden");
+          renderAdmin();
+        }
+
+        function showLocked(){
+          els.admin.classList.add("hidden");
+          els.locked.classList.remove("hidden");
+        }
+
+        els.unlockBtn.addEventListener("click", () => {
+          const p = (els.pass.value || "").trim();
+          if (!p){ setMsg("Enter a password.", "rgba(255,107,138,.85)"); return; }
+          const h = hash32(p);
+          if (h !== expectedHash){
+            setMsg("Wrong password.", "rgba(255,107,138,.85)");
+            setUnlocked(false);
+            return;
+          }
+          setUnlocked(true);
+          setMsg("Unlocked.", "rgba(182,255,234,.85)");
+          showAdmin();
+          els.pass.value = "";
+        });
+
+        els.pass.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") els.unlockBtn.click();
+        });
+
+        els.clearUnlockBtn.addEventListener("click", () => {
+          setUnlocked(false);
+          els.pass.value = "";
+          setMsg("Locked.", "rgba(255,255,255,.65)");
+          showLocked();
+        });
+
+        els.resetBtn.addEventListener("click", () => {
+          const ok = confirm("Reset analytics stored in this browser?");
+          if (!ok) return;
+          try{ localStorage.removeItem(LS.analytics); }catch{}
+          renderAdmin();
+        });
+
+        // initial
+        if (isUnlocked()){
+          setMsg("Unlocked.", "rgba(182,255,234,.85)");
+          showAdmin();
+        }else{
+          showLocked();
+        }
+      })();
+    </script>
+  </body>
+</html>
