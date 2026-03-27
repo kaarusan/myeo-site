@@ -6,6 +6,16 @@
     <meta name="color-scheme" content="dark" />
     <meta name="theme-color" content="#070A0F" />
     <title>myeo · Customize</title>
+    <script src="auth.js"></script>
+    <script>
+      (function () {
+        if (!window.myeoAuth) return;
+        if (!myeoAuth.isAuthorized()) {
+          const next = encodeURIComponent("customize.html" + location.hash);
+          location.replace("login.html?next=" + next);
+        }
+      })();
+    </script>
     <style>
       :root{
         --bg0:#05060a;
@@ -307,6 +317,7 @@
             <div class="s">saved in your browser (localStorage)</div>
           </div>
           <div class="actions" style="margin-top:0;">
+            <button class="btn danger" id="signOutBtn" type="button">Sign out</button>
             <button class="btn primary" id="saveBtn" type="button">Save</button>
             <button class="btn" id="previewBtn" type="button">Preview</button>
             <button class="btn danger" id="resetBtn" type="button" title="Clears config and reverts to defaults">Reset</button>
@@ -522,6 +533,7 @@
           cfgAdminPass: document.getElementById("cfgAdminPass"),
           linksEditor: document.getElementById("linksEditor"),
           addLinkBtn: document.getElementById("addLinkBtn"),
+          signOutBtn: document.getElementById("signOutBtn"),
           saveBtn: document.getElementById("saveBtn"),
           previewBtn: document.getElementById("previewBtn"),
           resetBtn: document.getElementById("resetBtn"),
@@ -819,6 +831,11 @@
           }catch{
             alert("Import failed. Paste an encoded string or valid JSON.");
           }
+        });
+
+        els.signOutBtn.addEventListener("click", () => {
+          if (window.myeoAuth) myeoAuth.signOut();
+          location.replace("login.html?next=" + encodeURIComponent("customize.html"));
         });
 
         setFieldValues(config);

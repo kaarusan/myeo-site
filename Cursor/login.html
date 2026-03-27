@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070A0F" />
+    <title>myeo · Login</title>
+    <style>
+      :root{
+        --bg0:#05060a;
+        --bg1:#070916;
+        --card:rgba(10, 12, 22, .64);
+        --line:rgba(255,255,255,.10);
+        --text:rgba(255,255,255,.92);
+        --muted:rgba(255,255,255,.62);
+        --accent:#b6ffea;
+        --danger:#ff6b8a;
+      }
+      *{box-sizing:border-box}
+      body{
+        margin:0; min-height:100vh; color:var(--text);
+        font:500 15px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background:
+          radial-gradient(1200px 700px at 20% 10%, rgba(122,162,255,.22), transparent 60%),
+          radial-gradient(900px 650px at 80% 40%, rgba(182,255,234,.18), transparent 55%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+        display:grid; place-items:center; padding:22px;
+      }
+      .card{
+        width:min(480px, 100%);
+        background:var(--card);
+        border:1px solid var(--line);
+        border-radius:18px;
+        padding:18px;
+      }
+      .h{font-weight:900; letter-spacing:.08em; text-transform:uppercase; font-family:ui-monospace,Consolas,monospace}
+      .sub{color:var(--muted); font-size:12px; margin-top:4px}
+      .tabs{display:flex; gap:8px; margin-top:14px}
+      .tab,.btn{
+        border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); color:var(--text);
+        border-radius:12px; padding:10px 12px; cursor:pointer; font:inherit;
+      }
+      .tab.active{border-color:rgba(182,255,234,.35); background:rgba(182,255,234,.08)}
+      .row{margin-top:10px}
+      label{display:block; font-size:12px; color:rgba(255,255,255,.7); margin-bottom:6px}
+      input{
+        width:100%; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.18); color:var(--text);
+        border-radius:12px; padding:10px 12px; font:inherit;
+      }
+      .btn.primary{border-color:rgba(182,255,234,.35); background:rgba(182,255,234,.08)}
+      .btn.danger{border-color:rgba(255,107,138,.35)}
+      .actions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap}
+      .msg{margin-top:10px; color:var(--muted); font-size:13px; min-height:18px}
+      .panel{display:none; margin-top:8px}
+      .panel.active{display:block}
+      .mono{font-family:ui-monospace,Consolas,monospace}
+      .secret{margin-top:8px; padding:10px; border:1px dashed rgba(182,255,234,.35); border-radius:12px; font-size:12px}
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <div class="h">myeo · auth</div>
+      <div class="sub">login + signup + 2fa frontend flow</div>
+
+      <div class="tabs">
+        <button class="tab active" id="tabSignIn" type="button">Sign in</button>
+        <button class="tab" id="tabSignUp" type="button">Sign up</button>
+      </div>
+
+      <section class="panel active" id="panelSignIn">
+        <div class="row">
+          <label for="inEmail">Email</label>
+          <input id="inEmail" type="email" autocomplete="username" />
+        </div>
+        <div class="row">
+          <label for="inPassword">Password</label>
+          <input id="inPassword" type="password" autocomplete="current-password" />
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="signInBtn" type="button">Sign in</button>
+        </div>
+      </section>
+
+      <section class="panel" id="panelSignUp">
+        <div class="row">
+          <label for="upEmail">Email</label>
+          <input id="upEmail" type="email" autocomplete="username" />
+        </div>
+        <div class="row">
+          <label for="upPassword">Password</label>
+          <input id="upPassword" type="password" autocomplete="new-password" />
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="signUpBtn" type="button">Create account</button>
+        </div>
+        <div class="secret" id="secretBox" style="display:none;"></div>
+      </section>
+
+      <section class="panel" id="panelTwoFactor">
+        <div class="sub">Enter your 6-digit code</div>
+        <div class="row">
+          <label for="twoFactorCode">2FA code</label>
+          <input id="twoFactorCode" type="text" maxlength="6" inputmode="numeric" />
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="verify2faBtn" type="button">Verify</button>
+          <button class="btn danger" id="logoutBtn" type="button">Cancel</button>
+        </div>
+      </section>
+
+      <div class="actions">
+        <a class="btn" href="index.html" style="text-decoration:none;">Back to page</a>
+      </div>
+      <div class="msg" id="msg"></div>
+    </main>
+
+    <script src="auth.js"></script>
+    <script>
+      (function(){
+        const qs = new URLSearchParams(location.search);
+        const next = qs.get("next") || "customize.html";
+        const els = {
+          tabSignIn: document.getElementById("tabSignIn"),
+          tabSignUp: document.getElementById("tabSignUp"),
+          panelSignIn: document.getElementById("panelSignIn"),
+          panelSignUp: document.getElementById("panelSignUp"),
+          panelTwoFactor: document.getElementById("panelTwoFactor"),
+          inEmail: document.getElementById("inEmail"),
+          inPassword: document.getElementById("inPassword"),
+          upEmail: document.getElementById("upEmail"),
+          upPassword: document.getElementById("upPassword"),
+          signInBtn: document.getElementById("signInBtn"),
+          signUpBtn: document.getElementById("signUpBtn"),
+          verify2faBtn: document.getElementById("verify2faBtn"),
+          twoFactorCode: document.getElementById("twoFactorCode"),
+          logoutBtn: document.getElementById("logoutBtn"),
+          msg: document.getElementById("msg"),
+          secretBox: document.getElementById("secretBox")
+        };
+
+        function setMsg(t, kind){
+          els.msg.textContent = t || "";
+          els.msg.style.color = kind === "bad" ? "rgba(255,107,138,.9)" : (kind === "ok" ? "rgba(182,255,234,.9)" : "rgba(255,255,255,.7)");
+        }
+
+        function show(panel){
+          els.panelSignIn.classList.remove("active");
+          els.panelSignUp.classList.remove("active");
+          els.panelTwoFactor.classList.remove("active");
+          panel.classList.add("active");
+        }
+
+        function setTab(active){
+          els.tabSignIn.classList.toggle("active", active === "signin");
+          els.tabSignUp.classList.toggle("active", active === "signup");
+        }
+
+        function goNext(){
+          location.replace(next);
+        }
+
+        if (window.myeoAuth && myeoAuth.isAuthorized()) {
+          goNext();
+          return;
+        }
+
+        els.tabSignIn.addEventListener("click", function(){ setTab("signin"); show(els.panelSignIn); setMsg(""); });
+        els.tabSignUp.addEventListener("click", function(){ setTab("signup"); show(els.panelSignUp); setMsg(""); });
+
+        els.signUpBtn.addEventListener("click", function(){
+          const r = myeoAuth.signUp(els.upEmail.value, els.upPassword.value);
+          if (!r.ok) { setMsg(r.message, "bad"); return; }
+          els.secretBox.style.display = "block";
+          els.secretBox.innerHTML = "Account created.<br />Your demo 2FA secret: <span class='mono'>" + r.secret + "</span><br />Use sign in next, then enter generated code.";
+          setMsg("Account created. Now sign in.", "ok");
+          setTab("signin");
+          show(els.panelSignIn);
+          els.inEmail.value = els.upEmail.value.trim();
+          els.upPassword.value = "";
+        });
+
+        els.signInBtn.addEventListener("click", function(){
+          const r = myeoAuth.signIn(els.inEmail.value, els.inPassword.value);
+          if (!r.ok) { setMsg(r.message, "bad"); return; }
+          els.inPassword.value = "";
+          if (r.twoFactorRequired) {
+            show(els.panelTwoFactor);
+            setMsg("2FA required.", "ok");
+            return;
+          }
+          setMsg("Signed in.", "ok");
+          goNext();
+        });
+
+        els.verify2faBtn.addEventListener("click", function(){
+          const r = myeoAuth.verifyTwoFactor(els.twoFactorCode.value);
+          if (!r.ok) { setMsg(r.message, "bad"); return; }
+          setMsg("2FA verified.", "ok");
+          goNext();
+        });
+
+        els.logoutBtn.addEventListener("click", function(){
+          myeoAuth.signOut();
+          show(els.panelSignIn);
+          setMsg("Signed out.");
+        });
+      })();
+    </script>
+  </body>
+</html>
