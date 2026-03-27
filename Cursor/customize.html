@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070A0F" />
+    <title>myeo · Customize</title>
+    <style>
+      :root{
+        --bg0:#05060a;
+        --bg1:#070916;
+        --card:rgba(10, 12, 22, .55);
+        --line:rgba(255,255,255,.10);
+        --text:rgba(255,255,255,.92);
+        --muted:rgba(255,255,255,.62);
+        --accent:#b6ffea;
+        --accent2:#7aa2ff;
+        --danger:#ff6b8a;
+        --shadow: 0 24px 80px rgba(0,0,0,.55);
+        --blur: 16px;
+        --r: 18px;
+      }
+      *{ box-sizing:border-box; }
+      html,body{ height:100%; }
+      body{
+        margin:0;
+        color:var(--text);
+        background:
+          radial-gradient(1200px 700px at 20% 10%, rgba(122,162,255,.22), transparent 60%),
+          radial-gradient(900px 650px at 80% 40%, rgba(182,255,234,.18), transparent 55%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+        font: 500 15px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+        overflow-x:hidden;
+      }
+      .wash{
+        position:fixed; inset:-55%;
+        background: conic-gradient(from 200deg at 50% 50%, rgba(122,162,255,.18), rgba(182,255,234,.12), rgba(255,107,138,.10), rgba(122,162,255,.18));
+        filter: blur(56px) saturate(120%);
+        opacity:.40;
+        pointer-events:none;
+        animation: drift 22s ease-in-out infinite alternate;
+      }
+      @keyframes drift{
+        0%{ transform: translate3d(-2.5%, -2%, 0) rotate(-6deg); }
+        100%{ transform: translate3d(2.5%, 2%, 0) rotate(10deg); }
+      }
+      .grain{
+        position:fixed; inset:0;
+        pointer-events:none;
+        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='150' height='150' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+        mix-blend-mode: overlay;
+        opacity:.05;
+      }
+      .wrap{
+        min-height:100%;
+        display:flex;
+        justify-content:center;
+        padding: 40px 16px;
+      }
+      .card{
+        width:min(980px, 100%);
+        background: var(--card);
+        border:1px solid var(--line);
+        border-radius: var(--r);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(var(--blur));
+        -webkit-backdrop-filter: blur(var(--blur));
+        overflow:hidden;
+      }
+      header{
+        padding: 16px 16px 0 16px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap: 12px;
+      }
+      .title{
+        display:flex;
+        flex-direction:column;
+        gap: 4px;
+      }
+      .title .h{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+      }
+      .title .s{
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .btn{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(255,255,255,.02);
+        color:var(--text);
+        padding: 10px 12px;
+        border-radius: 14px;
+        cursor:pointer;
+        user-select:none;
+        transition: transform .12s ease, background .12s ease, border-color .12s ease;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        gap:10px;
+      }
+      .btn:hover{ background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.16); }
+      .btn:active{ transform: translateY(1px); }
+      .btn:focus-visible{ outline: 2px solid rgba(182,255,234,.38); outline-offset: 2px; }
+      .btn.primary{
+        border-color: rgba(182,255,234,.24);
+        background: rgba(182,255,234,.06);
+      }
+      .btn.danger{
+        border-color: rgba(255,107,138,.28);
+      }
+      .grid{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        padding: 14px 16px 16px 16px;
+      }
+      .panel{
+        border:1px solid rgba(255,255,255,.08);
+        background: rgba(0,0,0,.12);
+        border-radius: 16px;
+        padding: 14px;
+      }
+      .panel h2{
+        margin:0 0 12px 0;
+        font-size: 12px;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        color: rgba(255,255,255,.40);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
+      label{
+        display:block;
+        color: rgba(255,255,255,.70);
+        font-size: 12px;
+        margin: 10px 0 6px 0;
+        letter-spacing: .02em;
+      }
+      input[type="text"], input[type="password"], input[type="url"], textarea, input[type="number"], input[type="range"]{
+        width:100%;
+      }
+      .field{
+        width: 100%;
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.18);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 14px;
+        font: inherit;
+      }
+      textarea{ min-height: 68px; resize: vertical; }
+      input[type="color"]{
+        width: 100%;
+        height: 44px;
+        padding: 6px;
+        border-radius: 14px;
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.18);
+      }
+      .row{
+        display:flex;
+        gap: 10px;
+      }
+      .row > *{ flex: 1 1 0; }
+      .linkRow{
+        display:grid;
+        grid-template-columns: 1.2fr 1.8fr 1fr auto;
+        gap: 8px;
+        align-items:end;
+        margin-top: 10px;
+      }
+      .linkRow .mini{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.18);
+        color: var(--text);
+        padding: 10px 12px;
+        border-radius: 14px;
+        font: inherit;
+      }
+      .linksEditorHeader{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap: 10px;
+      }
+      .linksEditorHeader .small{
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .switch{
+        display:flex;
+        gap: 10px;
+        align-items:center;
+      }
+      .switch input{ width: 18px; height: 18px; }
+      .actions{
+        display:flex;
+        flex-wrap:wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .previewWrap{
+        border:1px solid rgba(255,255,255,.08);
+        border-radius: 16px;
+        overflow:hidden;
+        background: rgba(0,0,0,.12);
+      }
+      iframe{
+        width:100%;
+        height: 540px;
+        border:0;
+        background: transparent;
+      }
+      .exportBox{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 12px;
+      }
+      .tiny{
+        color: rgba(255,255,255,.35);
+        font-size: 12px;
+        margin-top: 10px;
+      }
+
+      @media (max-width: 880px){
+        .grid{ grid-template-columns: 1fr; }
+        iframe{ height: 500px; }
+        .linkRow{
+          grid-template-columns: 1fr 1fr auto;
+        }
+        .linkRow .col3{ grid-column: 1 / span 2; }
+      }
+      @media (prefers-reduced-motion: reduce){
+        .wash{ animation:none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wash" aria-hidden="true"></div>
+    <div class="grain" aria-hidden="true"></div>
+
+    <div class="wrap">
+      <div class="card">
+        <header>
+          <div class="title">
+            <div class="h">myeo · Customize</div>
+            <div class="s">saved in your browser (localStorage)</div>
+          </div>
+          <div class="actions" style="margin-top:0;">
+            <button class="btn primary" id="saveBtn" type="button">Save</button>
+            <button class="btn" id="previewBtn" type="button">Preview</button>
+            <button class="btn danger" id="resetBtn" type="button" title="Clears config and reverts to defaults">Reset</button>
+          </div>
+        </header>
+
+        <div class="grid">
+          <section class="panel">
+            <h2>Profile</h2>
+
+            <label for="cfgName">Name</label>
+            <input class="field" id="cfgName" type="text" />
+
+            <label for="cfgTagline">Short bio</label>
+            <textarea class="field" id="cfgTagline" spellcheck="false"></textarea>
+
+            <label for="cfgBrandSub">Small subtitle (top left)</label>
+            <input class="field" id="cfgBrandSub" type="text" />
+
+            <label for="cfgAvatar">Avatar URL or data URL</label>
+            <input class="field" id="cfgAvatar" type="text" placeholder="https://... OR data:image/svg+xml,... (optional)" />
+
+            <div class="row" style="margin-top:6px;">
+              <div>
+                <label for="cfgAccent">Accent</label>
+                <input id="cfgAccent" type="color" />
+              </div>
+              <div>
+                <label for="cfgAccent2">Accent 2</label>
+                <input id="cfgAccent2" type="color" />
+              </div>
+            </div>
+
+            <h2 style="margin-top:16px;">Music</h2>
+
+            <label for="cfgMusicSrc">Music URL</label>
+            <input class="field" id="cfgMusicSrc" type="url" placeholder="https://... (optional)" />
+
+            <div class="row">
+              <div>
+                <label for="cfgVolume">Volume</label>
+                <input id="cfgVolume" type="range" min="0" max="1" step="0.01" />
+                <div class="tiny">current: <span id="volReadout"></span></div>
+              </div>
+              <div>
+                <label for="cfgAutoplay">Autoplay</label>
+                <div class="switch">
+                  <input id="cfgAutoplay" type="checkbox" />
+                  <span style="color:var(--muted); font-size:12px;">try on load</span>
+                </div>
+                <div class="tiny">unmuted by default (browser may still block)</div>
+              </div>
+            </div>
+
+            <h2 style="margin-top:16px;">Admin</h2>
+
+            <label for="cfgAdminPass">Admin password (local only)</label>
+            <input class="field" id="cfgAdminPass" type="password" placeholder="leave empty to keep current hash" />
+            <div class="tiny">analytics admin is at <span style="opacity:.85;">admin.html</span></div>
+
+            <h2 style="margin-top:16px;">Links</h2>
+            <div class="linksEditorHeader">
+              <div>
+                <div style="font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-weight:900;">{ label, url, subtitle }</div>
+                <div class="small">click add to create a new row</div>
+              </div>
+              <button class="btn" id="addLinkBtn" type="button">Add link</button>
+            </div>
+
+            <div id="linksEditor"></div>
+
+            <div class="actions">
+              <button class="btn primary" id="exportBtn" type="button">Export config</button>
+              <button class="btn" id="importBtn" type="button">Import config</button>
+            </div>
+
+            <label for="exportBox">Export (copy/paste)</label>
+            <textarea class="field exportBox" id="exportBox" readonly></textarea>
+
+            <label for="importBox">Import (paste encoded string or raw JSON)</label>
+            <textarea class="field exportBox" id="importBox"></textarea>
+          </section>
+
+          <aside class="panel previewWrap">
+            <h2 style="padding:0 0 12px 0; margin:0 0 12px 0;">Preview</h2>
+            <iframe id="previewFrame" title="Preview"></iframe>
+            <div class="tiny">preview uses <code>?nobump=1</code> so your visit count won't inflate</div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function(){
+        const LS = {
+          cfg: "myeo_biolink_config_v1"
+        };
+
+        function hash32(str){
+          let h = 0x811c9dc5;
+          for (let i = 0; i < str.length; i++){
+            h ^= str.charCodeAt(i);
+            h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+          }
+          return h >>> 0;
+        }
+
+        const DEFAULT_CONFIG = {
+          name: "myeo",
+          tagline: "dark minimal. building things.",
+          brandSub: "guns.lol-ish",
+          admin: { passHash: hash32("myeo") },
+          accents: { accent: "#b6ffea", accent2: "#7aa2ff" },
+          avatar: { avatarUrl: "", avatarDataUrl: "" },
+          music: {
+            src: "https://cdn.pixabay.com/download/audio/2022/03/09/audio_0c2b1b66e6.mp3?filename=lofi-study-112191.mp3",
+            volume: 0.85,
+            autoplay: true,
+            loop: true
+          },
+          links: [
+            { label: "Instagram", url: "https://instagram.com/", subtitle: "@myeo" },
+            { label: "NameMC", url: "https://namemc.com/", subtitle: "minecraft profile" },
+            { label: "Projects", url: "https://github.com/kaarusan", subtitle: "things i've made" }
+          ]
+        };
+
+        const els = {
+          cfgName: document.getElementById("cfgName"),
+          cfgTagline: document.getElementById("cfgTagline"),
+          cfgBrandSub: document.getElementById("cfgBrandSub"),
+          cfgAvatar: document.getElementById("cfgAvatar"),
+          cfgAccent: document.getElementById("cfgAccent"),
+          cfgAccent2: document.getElementById("cfgAccent2"),
+          cfgMusicSrc: document.getElementById("cfgMusicSrc"),
+          cfgVolume: document.getElementById("cfgVolume"),
+          cfgAutoplay: document.getElementById("cfgAutoplay"),
+          volReadout: document.getElementById("volReadout"),
+          cfgAdminPass: document.getElementById("cfgAdminPass"),
+          linksEditor: document.getElementById("linksEditor"),
+          addLinkBtn: document.getElementById("addLinkBtn"),
+          saveBtn: document.getElementById("saveBtn"),
+          previewBtn: document.getElementById("previewBtn"),
+          resetBtn: document.getElementById("resetBtn"),
+          exportBtn: document.getElementById("exportBtn"),
+          importBtn: document.getElementById("importBtn"),
+          exportBox: document.getElementById("exportBox"),
+          importBox: document.getElementById("importBox"),
+          previewFrame: document.getElementById("previewFrame")
+        };
+
+        function toUrlBase64(str){
+          const b64 = btoa(unescape(encodeURIComponent(str)));
+          return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/,"");
+        }
+        function fromUrlBase64(b64){
+          b64 = (b64 || "").replace(/-/g, "+").replace(/_/g, "/");
+          const pad = b64.length % 4 ? "=".repeat(4 - (b64.length % 4)) : "";
+          const str = atob(b64 + pad);
+          return decodeURIComponent(escape(str));
+        }
+
+        function safeJsonParse(s){
+          try { return JSON.parse(s); } catch { return null; }
+        }
+
+        function loadConfig(){
+          try{
+            const raw = localStorage.getItem(LS.cfg);
+            if (!raw) return DEFAULT_CONFIG;
+            const parsed = safeJsonParse(raw);
+            return (parsed && typeof parsed === "object") ? parsed : DEFAULT_CONFIG;
+          }catch{
+            return DEFAULT_CONFIG;
+          }
+        }
+
+        function saveConfig(cfg){
+          try{ localStorage.setItem(LS.cfg, JSON.stringify(cfg)); }catch{}
+        }
+
+        function syncColorVars(cfg){
+          document.documentElement.style.setProperty("--accent", cfg?.accents?.accent || DEFAULT_CONFIG.accents.accent);
+          document.documentElement.style.setProperty("--accent2", cfg?.accents?.accent2 || DEFAULT_CONFIG.accents.accent2);
+        }
+
+        let config = loadConfig();
+        syncColorVars(config);
+
+        function setFieldValues(cfg){
+          els.cfgName.value = String(cfg?.name || DEFAULT_CONFIG.name);
+          els.cfgTagline.value = String(cfg?.tagline || DEFAULT_CONFIG.tagline);
+          els.cfgBrandSub.value = String(cfg?.brandSub || DEFAULT_CONFIG.brandSub);
+
+          const av = cfg?.avatar?.avatarDataUrl || cfg?.avatar?.avatarUrl || "";
+          els.cfgAvatar.value = String(av);
+
+          els.cfgAccent.value = (cfg?.accents?.accent || DEFAULT_CONFIG.accents.accent);
+          els.cfgAccent2.value = (cfg?.accents?.accent2 || DEFAULT_CONFIG.accents.accent2);
+
+          els.cfgMusicSrc.value = String(cfg?.music?.src || "");
+          const vol = Number(cfg?.music?.volume ?? DEFAULT_CONFIG.music.volume);
+          els.cfgVolume.value = String(Math.max(0, Math.min(1, isFinite(vol) ? vol : DEFAULT_CONFIG.music.volume)));
+          els.volReadout.textContent = els.cfgVolume.value;
+
+          els.cfgAutoplay.checked = Boolean(cfg?.music?.autoplay ?? true);
+          els.cfgAdminPass.value = "";
+
+          renderLinks(cfg?.links);
+        }
+
+        function mkLinkRow(link, idx){
+          const row = document.createElement("div");
+          row.className = "linkRow";
+          row.dataset.idx = String(idx);
+
+          const label = document.createElement("input");
+          label.className = "mini";
+          label.type = "text";
+          label.placeholder = "Label";
+          label.value = String(link?.label || "");
+
+          const url = document.createElement("input");
+          url.className = "mini";
+          url.type = "url";
+          url.placeholder = "URL";
+          url.value = String(link?.url || "");
+
+          const subtitle = document.createElement("input");
+          subtitle.className = "mini col3";
+          subtitle.type = "text";
+          subtitle.placeholder = "Subtitle (optional)";
+          subtitle.value = String(link?.subtitle || "");
+
+          const del = document.createElement("button");
+          del.type = "button";
+          del.className = "btn danger";
+          del.textContent = "Remove";
+          del.style.padding = "10px 12px";
+
+          del.addEventListener("click", () => {
+            row.remove();
+          });
+
+          row.appendChild(label);
+          row.appendChild(url);
+          row.appendChild(subtitle);
+          row.appendChild(del);
+          return row;
+        }
+
+        function renderLinks(links){
+          els.linksEditor.innerHTML = "";
+          const arr = Array.isArray(links) ? links : DEFAULT_CONFIG.links;
+          arr.forEach((l, i) => els.linksEditor.appendChild(mkLinkRow(l, i)));
+        }
+
+        function normalizeConfigFromForm(){
+          const adminPass = (els.cfgAdminPass.value || "").trim();
+          const adminHash = adminPass ? hash32(adminPass) : (config?.admin?.passHash ?? DEFAULT_CONFIG.admin.passHash);
+
+          const avatarVal = (els.cfgAvatar.value || "").trim();
+
+          const links = [];
+          const rows = Array.from(els.linksEditor.querySelectorAll(".linkRow"));
+          for (const r of rows){
+            const inputs = Array.from(r.querySelectorAll("input"));
+            const label = inputs[0]?.value || "";
+            const url = inputs[1]?.value || "";
+            const subtitle = inputs[2]?.value || "";
+            if (label.trim() && url.trim()){
+              links.push({ label: label.trim(), url: url.trim(), subtitle: subtitle.trim() });
+            }
+          }
+
+          return {
+            name: els.cfgName.value.trim() || DEFAULT_CONFIG.name,
+            tagline: els.cfgTagline.value.trim() || DEFAULT_CONFIG.tagline,
+            brandSub: els.cfgBrandSub.value.trim() || DEFAULT_CONFIG.brandSub,
+            admin: { passHash: adminHash },
+            accents: {
+              accent: els.cfgAccent.value,
+              accent2: els.cfgAccent2.value
+            },
+            avatar: {
+              avatarUrl: avatarVal,
+              avatarDataUrl: ""
+            },
+            music: {
+              src: (els.cfgMusicSrc.value || "").trim(),
+              volume: Number(els.cfgVolume.value),
+              autoplay: Boolean(els.cfgAutoplay.checked),
+              loop: true
+            },
+            links: links.length ? links : DEFAULT_CONFIG.links
+          };
+        }
+
+        function refreshPreview(){
+          els.previewFrame.src = "index.html?nobump=1&_t=" + Date.now();
+        }
+
+        els.cfgVolume.addEventListener("input", () => {
+          els.volReadout.textContent = els.cfgVolume.value;
+        });
+
+        els.addLinkBtn.addEventListener("click", () => {
+          els.linksEditor.appendChild(mkLinkRow({ label:"", url:"", subtitle:"" }, Date.now()));
+        });
+
+        els.saveBtn.addEventListener("click", () => {
+          config = normalizeConfigFromForm();
+          syncColorVars(config);
+          saveConfig(config);
+          refreshPreview();
+          els.cfgAdminPass.value = "";
+          alert("Saved. Preview updated.");
+        });
+
+        els.previewBtn.addEventListener("click", () => {
+          refreshPreview();
+        });
+
+        els.resetBtn.addEventListener("click", () => {
+          const ok = confirm("Reset config to defaults?");
+          if (!ok) return;
+          try{ localStorage.removeItem(LS.cfg); }catch{}
+          config = DEFAULT_CONFIG;
+          syncColorVars(config);
+          setFieldValues(config);
+          refreshPreview();
+          els.cfgAdminPass.value = "";
+          alert("Reset complete.");
+        });
+
+        els.exportBtn.addEventListener("click", () => {
+          const cfg = normalizeConfigFromForm();
+          const raw = JSON.stringify(cfg);
+          const enc = toUrlBase64(raw);
+          els.exportBox.value = enc;
+          try{
+            navigator.clipboard.writeText(enc);
+          }catch{}
+          alert("Export ready (copied if clipboard permission allows).");
+        });
+
+        els.importBtn.addEventListener("click", () => {
+          const t = (els.importBox.value || "").trim();
+          if (!t) { alert("Paste something to import."); return; }
+          try{
+            const decoded = t.trim().startsWith("{") ? safeJsonParse(t) : safeJsonParse(fromUrlBase64(t));
+            if (!decoded || typeof decoded !== "object") throw new Error("bad");
+            config = decoded;
+
+            saveConfig(config);
+            syncColorVars(config);
+            setFieldValues(config);
+            refreshPreview();
+            els.cfgAdminPass.value = "";
+            alert("Imported + saved.");
+          }catch{
+            alert("Import failed. Paste an encoded string or valid JSON.");
+          }
+        });
+
+        setFieldValues(config);
+        refreshPreview();
+      })();
+    </script>
+  </body>
+</html>
