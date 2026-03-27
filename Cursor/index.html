@@ -94,7 +94,7 @@
       }
 
       .card{
-        width:min(620px, 100%);
+        width:min(520px, 100%);
         border-radius: var(--r);
         background: var(--card);
         border:1px solid var(--line);
@@ -188,14 +188,14 @@
       }
 
       .hero{
-        padding: 16px 18px 10px 18px;
+        padding: 18px 18px 10px 18px;
         display:flex;
         align-items:center;
-        gap: 16px;
+        gap: 14px;
       }
       .avatar{
-        width: 78px; height: 78px;
-        border-radius: 22px;
+        width: 72px; height: 72px;
+        border-radius: 999px;
         border:1px solid rgba(255,255,255,.14);
         background:
           radial-gradient(120% 120% at 20% 20%, rgba(182,255,234,.32), transparent 60%),
@@ -229,8 +229,8 @@
       .name{
         margin:0;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        font-size: 26px;
-        letter-spacing: .02em;
+        font-size: 24px;
+        letter-spacing: .03em;
         font-weight: 900;
         line-height:1.05;
       }
@@ -280,7 +280,7 @@
         text-decoration:none;
         color:inherit;
         border:1px solid rgba(255,255,255,.10);
-        background: rgba(255,255,255,.02);
+        background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
         border-radius: 16px;
         padding: 12px 12px 12px 14px;
         display:flex;
@@ -445,7 +445,7 @@
             <span>today</span>
             <strong id="todayCount">—</strong>
           </div>
-          <a class="adminGhost" href="admin.html" aria-label="Admin analytics">admin</a>
+          <a class="adminGhost" href="customize.html#analytics" aria-label="Customize">customize</a>
         </footer>
       </main>
     </div>
@@ -460,6 +460,29 @@
           adminUnlocked: "myeo_admin_unlocked_v1"
         };
 
+        const IDB = { name: "myeo_biolink_idb_v1", store: "blobs" };
+        function idbOpen(){
+          return new Promise((resolve, reject) => {
+            const req = indexedDB.open(IDB.name, 1);
+            req.onupgradeneeded = () => {
+              const db = req.result;
+              if (!db.objectStoreNames.contains(IDB.store)) db.createObjectStore(IDB.store);
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+        }
+        async function idbGet(key){
+          const db = await idbOpen();
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB.store, "readonly");
+            const st = tx.objectStore(IDB.store);
+            const req = st.get(key);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+          }).finally(() => db.close());
+        }
+
         function hash32(str){
           // FNV-1a 32-bit
           let h = 0x811c9dc5;
@@ -472,8 +495,8 @@
 
         const DEFAULT_CONFIG = {
           name: "myeo",
-          tagline: "dark minimal. building things.",
-          brandSub: "guns.lol-ish",
+          tagline: "",
+          brandSub: "",
           admin: {
             passHash: hash32("myeo")
           },
@@ -487,6 +510,8 @@
           },
           music: {
             src: "https://cdn.pixabay.com/download/audio/2022/03/09/audio_0c2b1b66e6.mp3?filename=lofi-study-112191.mp3",
+            srcType: "url",
+            uploadKey: "music",
             volume: 0.85,
             autoplay: true,
             loop: true
@@ -595,13 +620,14 @@
             a = raw ? safeJsonParse(raw) : null;
           }catch{ a = null; }
           if (!a || typeof a !== "object"){
-            a = { total: 0, days: {}, first: now, last: now };
+            a = { total: 0, days: {}, first: now, last: now, clicks: {} };
           }
           a.total = (a.total || 0) + 1;
           a.first = a.first || now;
           a.last = now;
           a.days = a.days && typeof a.days === "object" ? a.days : {};
           a.days[tk] = (a.days[tk] || 0) + 1;
+          a.clicks = a.clicks && typeof a.clicks === "object" ? a.clicks : {};
 
           try{ localStorage.setItem(LS.analytics, JSON.stringify(a)); }catch{}
           return a;
@@ -617,7 +643,7 @@
           els.todayCount.textContent = String(today);
         }
 
-        function applyConfig(cfg){
+        async function applyConfig(cfg){
           const name = (cfg?.name || DEFAULT_CONFIG.name).toString();
           const tagline = (cfg?.tagline || DEFAULT_CONFIG.tagline).toString();
           const brandSub = (cfg?.brandSub || DEFAULT_CONFIG.brandSub).toString();
@@ -633,7 +659,7 @@
           els.brandText.textContent = String(name).toUpperCase();
           els.brandSub.textContent = brandSub;
           els.nameEl.textContent = name;
-          els.bioEl.textContent = tagline;
+          els.bioEl.textContent = tagline || "";
 
           // avatar
           const url = cfg?.avatar?.avatarDataUrl || cfg?.avatar?.avatarUrl;
@@ -645,8 +671,9 @@
           for (const l of clean){
             const a = document.createElement("a");
             a.className = "link";
-            a.href = l.url;
-            a.target = "_blank";
+            const to = encodeURIComponent(l.url);
+            const label = encodeURIComponent(l.label);
+            a.href = `redirect.html?to=${to}&label=${label}`;
             a.rel = "noreferrer";
 
             const iconText = (l.label || "").trim().slice(0, 1).toUpperCase();
@@ -668,7 +695,19 @@
 
           // audio
           const music = cfg?.music || DEFAULT_CONFIG.music;
-          const src = music?.src || "";
+          const srcType = music?.srcType || "url";
+          const uploadKey = music?.uploadKey || "music";
+          let src = music?.src || "";
+          let objUrl = "";
+          if (srcType === "upload"){
+            try{
+              const blob = await idbGet(uploadKey);
+              if (blob) objUrl = URL.createObjectURL(blob);
+              src = objUrl || "";
+            }catch{
+              src = "";
+            }
+          }
           if (!src){
             els.musicBtn.disabled = true;
             els.musicBtn.style.opacity = ".45";
@@ -694,8 +733,8 @@
             els.bgm.play().then(() => {
               // started
             }).catch(() => {
-              // likely blocked by browser; keep button state as "SOUND"
-              els.musicLabel.textContent = "TAP TO ENABLE";
+              // likely blocked by browser; keep UI but hint.
+              els.musicLabel.textContent = "TAP";
               els.bgm.muted = false;
             });
           }
@@ -729,11 +768,11 @@
           }
         }
 
-        function init(){
+        async function init(){
           let cfg = loadConfig();
           // If loaded from URL param, save it so refresh keeps it.
           if (qs.get("config")) saveConfig(cfg);
-          applyConfig(cfg);
+          await applyConfig(cfg);
 
           if (!nobump){
             const a = bumpAnalytics();

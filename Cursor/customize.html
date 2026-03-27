@@ -225,6 +225,62 @@
         font-size: 12px;
         margin-top: 10px;
       }
+      .pill{
+        border:1px solid rgba(255,255,255,.10);
+        background: rgba(0,0,0,.18);
+        border-radius: 999px;
+        padding: 8px 10px;
+        display:inline-flex;
+        gap:10px;
+        align-items:center;
+        color: rgba(255,255,255,.72);
+        font-size: 12px;
+      }
+      .hr{
+        height:1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.10), transparent);
+        margin: 14px 0;
+      }
+      .analyticsGrid{
+        display:grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat{
+        border:1px solid rgba(255,255,255,.08);
+        background: rgba(0,0,0,.12);
+        border-radius: 16px;
+        padding: 12px;
+      }
+      .stat .n{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-weight: 950;
+        font-size: 20px;
+        letter-spacing: .04em;
+      }
+      .stat .d{
+        margin-top: 4px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+      .clicks{
+        margin-top: 10px;
+        display:grid;
+        gap: 8px;
+      }
+      .clickRow{
+        border:1px solid rgba(255,255,255,.08);
+        background: rgba(0,0,0,.12);
+        border-radius: 14px;
+        padding: 10px 12px;
+        display:flex;
+        justify-content:space-between;
+        gap: 10px;
+        align-items:center;
+      }
+      .mono{
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      }
 
       @media (max-width: 880px){
         .grid{ grid-template-columns: 1fr; }
@@ -264,7 +320,7 @@
             <label for="cfgName">Name</label>
             <input class="field" id="cfgName" type="text" />
 
-            <label for="cfgTagline">Short bio</label>
+            <label for="cfgTagline">Description</label>
             <textarea class="field" id="cfgTagline" spellcheck="false"></textarea>
 
             <label for="cfgBrandSub">Small subtitle (top left)</label>
@@ -286,8 +342,15 @@
 
             <h2 style="margin-top:16px;">Music</h2>
 
-            <label for="cfgMusicSrc">Music URL</label>
-            <input class="field" id="cfgMusicSrc" type="url" placeholder="https://... (optional)" />
+            <label for="cfgMusicSrc">Music URL (optional)</label>
+            <input class="field" id="cfgMusicSrc" type="url" placeholder="https://.../track.mp3" />
+
+            <label for="cfgMusicFile">Or upload music (mp3/wav/ogg)</label>
+            <input class="field" id="cfgMusicFile" type="file" accept="audio/*" />
+            <div class="row" style="margin-top:8px;">
+              <button class="btn" id="clearMusicBtn" type="button">Clear uploaded music</button>
+              <span class="pill" id="musicStatus">source: url</span>
+            </div>
 
             <div class="row">
               <div>
@@ -305,11 +368,10 @@
               </div>
             </div>
 
-            <h2 style="margin-top:16px;">Admin</h2>
-
-            <label for="cfgAdminPass">Admin password (local only)</label>
-            <input class="field" id="cfgAdminPass" type="password" placeholder="leave empty to keep current hash" />
-            <div class="tiny">analytics admin is at <span style="opacity:.85;">admin.html</span></div>
+            <h2 style="margin-top:16px;">Lock</h2>
+            <label for="cfgAdminPass">Password for analytics + editing</label>
+            <input class="field" id="cfgAdminPass" type="password" placeholder="leave empty to keep current password" />
+            <div class="tiny">This is client-side only (works for “keep friends out”, not real security).</div>
 
             <h2 style="margin-top:16px;">Links</h2>
             <div class="linksEditorHeader">
@@ -332,6 +394,34 @@
 
             <label for="importBox">Import (paste encoded string or raw JSON)</label>
             <textarea class="field exportBox" id="importBox"></textarea>
+
+            <div class="hr" aria-hidden="true"></div>
+
+            <h2 id="analytics">Analytics</h2>
+            <div class="tiny">Unlock to view + reset analytics. Click tracking uses `redirect.html`.</div>
+            <div class="row" style="margin-top:10px;">
+              <input class="field" id="unlockPass" type="password" placeholder="password" autocomplete="current-password" />
+              <button class="btn primary" id="unlockBtn" type="button">Unlock</button>
+              <button class="btn" id="lockBtn" type="button">Lock</button>
+            </div>
+            <div class="tiny" id="unlockMsg"></div>
+
+            <div id="analyticsPanel" style="margin-top:12px; display:none;">
+              <div class="analyticsGrid">
+                <div class="stat"><div class="n" id="statTotal">—</div><div class="d">total pageviews</div></div>
+                <div class="stat"><div class="n" id="statToday">—</div><div class="d">today</div></div>
+                <div class="stat"><div class="n" id="statFirst">—</div><div class="d">first visit</div></div>
+                <div class="stat"><div class="n" id="statLast">—</div><div class="d">last visit</div></div>
+              </div>
+              <div class="row" style="margin-top:10px;">
+                <button class="btn danger" id="resetAnalyticsBtn" type="button">Reset analytics</button>
+                <span class="pill mono" id="keysHint">myeo_biolink_analytics_v1</span>
+              </div>
+              <div style="margin-top:12px;">
+                <div class="tiny">top clicks</div>
+                <div class="clicks" id="clicksList"></div>
+              </div>
+            </div>
           </section>
 
           <aside class="panel previewWrap">
@@ -346,8 +436,43 @@
     <script>
       (function(){
         const LS = {
-          cfg: "myeo_biolink_config_v1"
+          cfg: "myeo_biolink_config_v1",
+          analytics: "myeo_biolink_analytics_v1",
+          adminUnlocked: "myeo_admin_unlocked_v1"
         };
+
+        const IDB = { name: "myeo_biolink_idb_v1", store: "blobs" };
+        function idbOpen(){
+          return new Promise((resolve, reject) => {
+            const req = indexedDB.open(IDB.name, 1);
+            req.onupgradeneeded = () => {
+              const db = req.result;
+              if (!db.objectStoreNames.contains(IDB.store)) db.createObjectStore(IDB.store);
+            };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+          });
+        }
+        async function idbSet(key, value){
+          const db = await idbOpen();
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB.store, "readwrite");
+            const st = tx.objectStore(IDB.store);
+            const req = st.put(value, key);
+            req.onsuccess = () => resolve(true);
+            req.onerror = () => reject(req.error);
+          }).finally(() => db.close());
+        }
+        async function idbDel(key){
+          const db = await idbOpen();
+          return new Promise((resolve, reject) => {
+            const tx = db.transaction(IDB.store, "readwrite");
+            const st = tx.objectStore(IDB.store);
+            const req = st.delete(key);
+            req.onsuccess = () => resolve(true);
+            req.onerror = () => reject(req.error);
+          }).finally(() => db.close());
+        }
 
         function hash32(str){
           let h = 0x811c9dc5;
@@ -360,13 +485,15 @@
 
         const DEFAULT_CONFIG = {
           name: "myeo",
-          tagline: "dark minimal. building things.",
-          brandSub: "guns.lol-ish",
+          tagline: "",
+          brandSub: "",
           admin: { passHash: hash32("myeo") },
           accents: { accent: "#b6ffea", accent2: "#7aa2ff" },
           avatar: { avatarUrl: "", avatarDataUrl: "" },
           music: {
             src: "https://cdn.pixabay.com/download/audio/2022/03/09/audio_0c2b1b66e6.mp3?filename=lofi-study-112191.mp3",
+            srcType: "url",
+            uploadKey: "music",
             volume: 0.85,
             autoplay: true,
             loop: true
@@ -386,6 +513,9 @@
           cfgAccent: document.getElementById("cfgAccent"),
           cfgAccent2: document.getElementById("cfgAccent2"),
           cfgMusicSrc: document.getElementById("cfgMusicSrc"),
+          cfgMusicFile: document.getElementById("cfgMusicFile"),
+          clearMusicBtn: document.getElementById("clearMusicBtn"),
+          musicStatus: document.getElementById("musicStatus"),
           cfgVolume: document.getElementById("cfgVolume"),
           cfgAutoplay: document.getElementById("cfgAutoplay"),
           volReadout: document.getElementById("volReadout"),
@@ -399,7 +529,20 @@
           importBtn: document.getElementById("importBtn"),
           exportBox: document.getElementById("exportBox"),
           importBox: document.getElementById("importBox"),
-          previewFrame: document.getElementById("previewFrame")
+          previewFrame: document.getElementById("previewFrame"),
+
+          unlockPass: document.getElementById("unlockPass"),
+          unlockBtn: document.getElementById("unlockBtn"),
+          lockBtn: document.getElementById("lockBtn"),
+          unlockMsg: document.getElementById("unlockMsg"),
+          analyticsPanel: document.getElementById("analyticsPanel"),
+          statTotal: document.getElementById("statTotal"),
+          statToday: document.getElementById("statToday"),
+          statFirst: document.getElementById("statFirst"),
+          statLast: document.getElementById("statLast"),
+          resetAnalyticsBtn: document.getElementById("resetAnalyticsBtn"),
+          keysHint: document.getElementById("keysHint"),
+          clicksList: document.getElementById("clicksList")
         };
 
         function toUrlBase64(str){
@@ -440,6 +583,65 @@
         let config = loadConfig();
         syncColorVars(config);
 
+        function isUnlocked(){
+          try { return localStorage.getItem(LS.adminUnlocked) === "1"; } catch { return false; }
+        }
+        function setUnlocked(v){
+          try{ localStorage.setItem(LS.adminUnlocked, v ? "1" : "0"); }catch{}
+        }
+
+        function loadAnalytics(){
+          try{
+            const raw = localStorage.getItem(LS.analytics);
+            return raw ? safeJsonParse(raw) : null;
+          }catch{ return null; }
+        }
+        function todayKey(d = new Date()){
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+        }
+        function formatWhen(ts){
+          if (!ts) return "—";
+          const d = new Date(ts);
+          if (String(d) === "Invalid Date") return "—";
+          const s = d.toLocaleString(undefined, { year:"numeric", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+          return s.replace(",", "");
+        }
+        function setUnlockMsg(t, kind){
+          els.unlockMsg.textContent = t || "";
+          els.unlockMsg.style.color =
+            kind === "ok" ? "rgba(182,255,234,.80)" :
+            kind === "bad" ? "rgba(255,107,138,.85)" :
+            "rgba(255,255,255,.45)";
+        }
+
+        function renderAnalytics(){
+          const a = loadAnalytics() || { total:0, days:{}, first:null, last:null, clicks:{} };
+          const tk = todayKey();
+          els.statTotal.textContent = String(a?.total ?? 0);
+          els.statToday.textContent = String((a?.days && a.days[tk]) ? a.days[tk] : 0);
+          els.statFirst.textContent = formatWhen(a?.first);
+          els.statLast.textContent = formatWhen(a?.last);
+          els.keysHint.textContent = LS.analytics;
+
+          // clicks
+          const clicks = (a?.clicks && typeof a.clicks === "object") ? a.clicks : {};
+          const rows = Object.entries(clicks)
+            .map(([k, v]) => ({ label: k, total: Number(v?.total || 0) }))
+            .sort((x, y) => y.total - x.total)
+            .slice(0, 8);
+          els.clicksList.innerHTML = "";
+          if (!rows.length){
+            els.clicksList.innerHTML = `<div class="tiny">No click data yet.</div>`;
+            return;
+          }
+          for (const r of rows){
+            const div = document.createElement("div");
+            div.className = "clickRow";
+            div.innerHTML = `<span class="mono" style="opacity:.80;">${escapeHtml(r.label)}</span><span class="mono" style="font-weight:950;">${r.total}</span>`;
+            els.clicksList.appendChild(div);
+          }
+        }
+
         function setFieldValues(cfg){
           els.cfgName.value = String(cfg?.name || DEFAULT_CONFIG.name);
           els.cfgTagline.value = String(cfg?.tagline || DEFAULT_CONFIG.tagline);
@@ -452,6 +654,7 @@
           els.cfgAccent2.value = (cfg?.accents?.accent2 || DEFAULT_CONFIG.accents.accent2);
 
           els.cfgMusicSrc.value = String(cfg?.music?.src || "");
+          els.musicStatus.textContent = `source: ${cfg?.music?.srcType || "url"}`;
           const vol = Number(cfg?.music?.volume ?? DEFAULT_CONFIG.music.volume);
           els.cfgVolume.value = String(Math.max(0, Math.min(1, isFinite(vol) ? vol : DEFAULT_CONFIG.music.volume)));
           els.volReadout.textContent = els.cfgVolume.value;
@@ -541,6 +744,8 @@
             },
             music: {
               src: (els.cfgMusicSrc.value || "").trim(),
+              srcType: (config?.music?.srcType || "url"),
+              uploadKey: (config?.music?.uploadKey || "music"),
               volume: Number(els.cfgVolume.value),
               autoplay: Boolean(els.cfgAutoplay.checked),
               loop: true
@@ -618,6 +823,98 @@
 
         setFieldValues(config);
         refreshPreview();
+
+        // music upload handling (stored in IndexedDB)
+        els.cfgMusicFile.addEventListener("change", async () => {
+          const f = els.cfgMusicFile.files && els.cfgMusicFile.files[0];
+          if (!f) return;
+          if (!f.type.startsWith("audio/")){
+            alert("Please choose an audio file.");
+            return;
+          }
+          try{
+            const key = (config?.music?.uploadKey || "music");
+            await idbSet(key, f);
+            config = normalizeConfigFromForm();
+            config.music.srcType = "upload";
+            config.music.uploadKey = key;
+            // keep URL field but upload takes precedence
+            saveConfig(config);
+            setFieldValues(config);
+            refreshPreview();
+            alert("Uploaded. Saved to this browser.");
+          }catch{
+            alert("Upload failed (browser storage blocked?).");
+          }finally{
+            els.cfgMusicFile.value = "";
+          }
+        });
+
+        els.clearMusicBtn.addEventListener("click", async () => {
+          const key = (config?.music?.uploadKey || "music");
+          await idbDel(key).catch(()=>{});
+          config = normalizeConfigFromForm();
+          config.music.srcType = "url";
+          saveConfig(config);
+          setFieldValues(config);
+          refreshPreview();
+          alert("Cleared uploaded music.");
+        });
+
+        // analytics unlock (same password as config admin hash)
+        function attemptUnlock(pass){
+          const p = (pass || "").trim();
+          if (!p){ setUnlockMsg("Enter password.", "bad"); return false; }
+          const ok = hash32(p) === (config?.admin?.passHash ?? DEFAULT_CONFIG.admin.passHash);
+          if (!ok){
+            setUnlocked(false);
+            els.analyticsPanel.style.display = "none";
+            setUnlockMsg("Wrong password.", "bad");
+            return false;
+          }
+          setUnlocked(true);
+          els.analyticsPanel.style.display = "block";
+          setUnlockMsg("Unlocked.", "ok");
+          renderAnalytics();
+          return true;
+        }
+
+        els.unlockBtn.addEventListener("click", () => {
+          const ok = attemptUnlock(els.unlockPass.value);
+          if (ok) els.unlockPass.value = "";
+        });
+        els.unlockPass.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") els.unlockBtn.click();
+        });
+        els.lockBtn.addEventListener("click", () => {
+          setUnlocked(false);
+          els.analyticsPanel.style.display = "none";
+          setUnlockMsg("Locked.", "muted");
+        });
+        els.resetAnalyticsBtn.addEventListener("click", () => {
+          if (!isUnlocked()){
+            setUnlockMsg("Unlock first.", "bad");
+            return;
+          }
+          const ok = confirm("Reset analytics stored in this browser?");
+          if (!ok) return;
+          try{ localStorage.removeItem(LS.analytics); }catch{}
+          renderAnalytics();
+        });
+
+        // initial state
+        if (location.hash === "#analytics"){
+          // scroll into view
+          setTimeout(() => document.getElementById("analytics")?.scrollIntoView({ block:"start", behavior:"smooth" }), 50);
+        }
+        if (isUnlocked()){
+          els.analyticsPanel.style.display = "block";
+          setUnlockMsg("Unlocked.", "ok");
+          renderAnalytics();
+        } else {
+          els.analyticsPanel.style.display = "none";
+          setUnlockMsg("Locked.", "muted");
+        }
       })();
     </script>
   </body>

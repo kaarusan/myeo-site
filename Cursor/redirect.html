@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#070A0F" />
+    <title>Redirecting…</title>
+    <style>
+      :root{ color-scheme: dark; }
+      body{
+        margin:0;
+        min-height:100vh;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:#070A0F;
+        color:rgba(255,255,255,.78);
+        font: 550 14px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      }
+      a{ color:#b6ffea; text-decoration:none; }
+    </style>
+  </head>
+  <body>
+    Redirecting…
+    <script>
+      (function(){
+        const LS = { analytics: "myeo_biolink_analytics_v1" };
+
+        function safeJsonParse(s){ try { return JSON.parse(s); } catch { return null; } }
+        function todayKey(d = new Date()){
+          return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+        }
+        function loadAnalytics(){
+          try{
+            const raw = localStorage.getItem(LS.analytics);
+            return raw ? safeJsonParse(raw) : null;
+          }catch{ return null; }
+        }
+        function saveAnalytics(a){
+          try{ localStorage.setItem(LS.analytics, JSON.stringify(a)); }catch{}
+        }
+
+        const qs = new URLSearchParams(location.search);
+        const to = qs.get("to") || "";
+        const label = (qs.get("label") || "link").slice(0, 80);
+
+        if (!to){
+          document.body.innerHTML = 'Missing destination. <a href="index.html">Back</a>';
+          return;
+        }
+
+        const now = Date.now();
+        const tk = todayKey();
+        const a = loadAnalytics() || { total: 0, days: {}, first: now, last: now, clicks: {} };
+        a.clicks = a.clicks && typeof a.clicks === "object" ? a.clicks : {};
+        a.clicks[label] = a.clicks[label] && typeof a.clicks[label] === "object" ? a.clicks[label] : { total: 0, days: {} };
+        a.clicks[label].total = (a.clicks[label].total || 0) + 1;
+        a.clicks[label].days = a.clicks[label].days && typeof a.clicks[label].days === "object" ? a.clicks[label].days : {};
+        a.clicks[label].days[tk] = (a.clicks[label].days[tk] || 0) + 1;
+        saveAnalytics(a);
+
+        try {
+          location.replace(to);
+        } catch {
+          location.href = to;
+        }
+      })();
+    </script>
+  </body>
+</html>
+
