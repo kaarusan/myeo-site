@@ -170,6 +170,57 @@
           return;
         }
 
+        const RL = {
+          signIn: { key: "myeo_rl_signin_v1", max: 5, windowMs: 10 * 60 * 1000, lockMs: 10 * 60 * 1000 },
+          twoFa: { key: "myeo_rl_2fa_v1", max: 6, windowMs: 10 * 60 * 1000, lockMs: 10 * 60 * 1000 },
+          signUp: { key: "myeo_rl_signup_v1", max: 5, windowMs: 60 * 60 * 1000, lockMs: 60 * 60 * 1000 }
+        };
+
+        function nowMs(){ return Date.now(); }
+        function readRl(rule){
+          try {
+            const raw = localStorage.getItem(rule.key);
+            const parsed = raw ? JSON.parse(raw) : null;
+            return parsed && typeof parsed === "object" ? parsed : { attempts: [], lockUntil: 0 };
+          } catch {
+            return { attempts: [], lockUntil: 0 };
+          }
+        }
+        function writeRl(rule, state){
+          try { localStorage.setItem(rule.key, JSON.stringify(state)); } catch {}
+        }
+        function pruneAttempts(attempts, windowMs){
+          const cutoff = nowMs() - windowMs;
+          return (attempts || []).filter(function (t) { return Number(t) >= cutoff; });
+        }
+        function checkLock(rule){
+          const s = readRl(rule);
+          const now = nowMs();
+          if (s.lockUntil && now < s.lockUntil) {
+            return { blocked: true, retryMs: s.lockUntil - now };
+          }
+          return { blocked: false, retryMs: 0 };
+        }
+        function registerFailure(rule){
+          const s = readRl(rule);
+          s.attempts = pruneAttempts(s.attempts, rule.windowMs);
+          s.attempts.push(nowMs());
+          if (s.attempts.length >= rule.max) {
+            s.lockUntil = nowMs() + rule.lockMs;
+            s.attempts = [];
+          }
+          writeRl(rule, s);
+        }
+        function clearFailures(rule){
+          writeRl(rule, { attempts: [], lockUntil: 0 });
+        }
+        function formatWait(ms){
+          const sec = Math.max(1, Math.ceil(ms / 1000));
+          const m = Math.floor(sec / 60);
+          const s = sec % 60;
+          return m ? (m + "m " + s + "s") : (s + "s");
+        }
+
         els.tabSignIn.addEventListener("click", function(){ setTab("signin"); show(els.panelSignIn); setMsg(""); });
         els.tabSignUp.addEventListener("click", function(){ setTab("signup"); show(els.panelSignUp); setMsg(""); });
 
@@ -237,10 +288,20 @@
         }
 
         els.signUpBtn.addEventListener("click", async function(){
+          const lock = checkLock(RL.signUp);
+          if (lock.blocked){
+            setMsg("Too many sign-up attempts. Try again in " + formatWait(lock.retryMs) + ".", "bad");
+            return;
+          }
           const email = els.upEmail.value.trim();
           const password = els.upPassword.value;
           const res = await client.auth.signUp({ email: email, password: password });
-          if (res.error) { setMsg(res.error.message || "Sign up failed.", "bad"); return; }
+          if (res.error) {
+            registerFailure(RL.signUp);
+            setMsg(res.error.message || "Sign up failed.", "bad");
+            return;
+          }
+          clearFailures(RL.signUp);
           setMsg("Account created. Sign in to continue.", "ok");
           setTab("signin");
           show(els.panelSignIn);
@@ -249,10 +310,20 @@
         });
 
         els.signInBtn.addEventListener("click", async function(){
+          const lock = checkLock(RL.signIn);
+          if (lock.blocked){
+            setMsg("Too many login attempts. Try again in " + formatWait(lock.retryMs) + ".", "bad");
+            return;
+          }
           const email = els.inEmail.value.trim();
           const password = els.inPassword.value;
           const res = await client.auth.signInWithPassword({ email: email, password: password });
-          if (res.error) { setMsg(res.error.message || "Sign in failed.", "bad"); return; }
+          if (res.error) {
+            registerFailure(RL.signIn);
+            setMsg(res.error.message || "Sign in failed.", "bad");
+            return;
+          }
+          clearFailures(RL.signIn);
           els.inPassword.value = "";
           const requires2fa = await hasVerifiedTotp();
           if (!requires2fa) {
@@ -265,8 +336,17 @@
         });
 
         els.verify2faBtn.addEventListener("click", async function(){
+          const lock = checkLock(RL.twoFa);
+          if (lock.blocked){
+            setMsg("Too many 2FA attempts. Try again in " + formatWait(lock.retryMs) + ".", "bad");
+            return;
+          }
           const ok = await verifyExistingFactor(els.twoFactorCode.value);
-          if (!ok) return;
+          if (!ok) {
+            registerFailure(RL.twoFa);
+            return;
+          }
+          clearFailures(RL.twoFa);
           setMsg("2FA verified.", "ok");
           await maybeRedirectIfReady();
         });
