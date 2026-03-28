@@ -1,0 +1,11 @@
+Two repos (this is easy to mix up):
+
+  kaarusan/myeo       — main development (your Cursor workspace remote is usually this).
+  kaarusan/myeo-site  — "Public deploy repo"; Vercel / CI for myeo.io often watches THIS one.
+
+If the live site looks stale, push dev to deploy:
+
+  git remote add myeo-site https://github.com/kaarusan/myeo-site.git
+  git push myeo-site main:main
+
+Or point Vercel's Git integration at kaarusan/myeo only and archive myeo-site.
