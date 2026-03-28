@@ -22,6 +22,21 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  /** Clean URL: serve bio at / while files live under /Cursor/ (see <base> in those HTML files). */
+  async redirects() {
+    return [
+      {
+        source: "/Cursor/index.html",
+        destination: "/",
+        permanent: true,
+      },
+    ];
+  },
+  async rewrites() {
+    return {
+      beforeFiles: [{ source: "/", destination: "/Cursor/index.html" }],
+    };
+  },
   async headers() {
     const security = [
       { key: "Content-Security-Policy", value: csp },
