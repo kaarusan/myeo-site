@@ -9,3 +9,10 @@ If the live site looks stale, push dev to deploy:
   git push myeo-site main:main
 
 Or point Vercel's Git integration at kaarusan/myeo only and archive myeo-site.
+
+Custom domain must alias the *myeo* project deployment, not *myeo-site*:
+  npx vercel alias list -S kaarusans-projects
+If myeo.io points at myeo-site-*****.vercel.app, fix with:
+  npx vercel alias remove myeo.io -S kaarusans-projects --yes
+  npx vercel alias set <latest-myeo-production-deployment>.vercel.app myeo.io -S kaarusans-projects
+After each critical deploy, re-run alias set if Vercel did not move the domain automatically.
