@@ -22,15 +22,6 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  async redirects() {
-    return [
-      {
-        source: "/cursor/:path*",
-        destination: "/Cursor/:path*",
-        permanent: false,
-      },
-    ];
-  },
   async headers() {
     const security = [
       { key: "Content-Security-Policy", value: csp },
