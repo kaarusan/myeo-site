@@ -22,6 +22,15 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
+  async redirects() {
+    return [
+      {
+        source: "/cursor/:path*",
+        destination: "/Cursor/:path*",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     const security = [
       { key: "Content-Security-Policy", value: csp },
@@ -46,6 +55,15 @@ const nextConfig = {
       {
         source: "/:path*",
         headers: security,
+      },
+      {
+        source: "/Cursor/index.html",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=0, must-revalidate",
+          },
+        ],
       },
       {
         source: "/Cursor/:path*.(js|css|png|jpg|jpeg|gif|webp|svg|ico|woff2)",

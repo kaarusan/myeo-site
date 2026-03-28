@@ -15,7 +15,14 @@ if (fs.existsSync(cursorDest)) {
 }
 fs.cpSync(cursorSrc, cursorDest, { recursive: true });
 
-const rootStatic = ["admin.html", "customize.html", "index.html", ".nojekyll"];
+const staleRootIndex = path.join(pub, "index.html");
+if (fs.existsSync(staleRootIndex)) {
+  fs.rmSync(staleRootIndex, { force: true });
+}
+
+// Do NOT copy index.html into public/: it shadows Next.js app/page.tsx on Vercel and
+// serves a stale static document instead of /Cursor/* (see vercel.json + app/page.tsx).
+const rootStatic = ["admin.html", "customize.html", ".nojekyll"];
 for (const name of rootStatic) {
   const from = path.join(root, name);
   const to = path.join(pub, name);
